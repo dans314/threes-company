@@ -1,0 +1,86 @@
+# Builds Three's Company on every push (and by hand from the Actions tab):
+#   Windows: CLAP + VST3 (64-bit)       macOS: CLAP + VST3 + AU (Apple Silicon and Intel)
+# Each run's zips are under the run's "Artifacts". Pushing a tag like v0.18.0 also makes a Release with them.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get the WebView2 SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2 -OutFile webview2.zip
+          Expand-Archive webview2.zip -DestinationPath webview2
+      - name: Configure
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64 -T ClangCL -DWEBVIEW2_DIR="${{ github.workspace }}/webview2"
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: List what was built
+        shell: bash
+        run: find build -iname "*.clap" -o -iname "*.vst3" | head -20
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force pkg | Out-Null
+          $clap = Get-ChildItem -Recurse build -Filter "*.clap" | Where-Object { -not $_.PSIsContainer } | Select-Object -First 1
+          $vst3 = Get-ChildItem -Recurse build -Filter "*.vst3" | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+          Copy-Item $clap.FullName pkg/
+          Copy-Item -Recurse $vst3.FullName pkg/
+          Copy-Item INSTALL.md pkg/
+          Copy-Item LICENSE pkg/
+          Compress-Archive -Path pkg/* -DestinationPath "Threes-Company-Windows.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Threes-Company-Windows
+          path: Threes-Company-Windows.zip
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -B build -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Package (ad-hoc signed)
+        run: |
+          mkdir -p pkg
+          find build -name "*.clap" -maxdepth 4 -type d -path "*Release*" -exec cp -R {} pkg/ \;
+          find build -name "*.vst3" -maxdepth 4 -type d -path "*Release*" -exec cp -R {} pkg/ \;
+          find build -name "*.component" -maxdepth 4 -type d -path "*Release*" -exec cp -R {} pkg/ \;
+          for b in pkg/*.clap pkg/*.vst3 pkg/*.component; do codesign --force --deep --sign - "$b"; done
+          cp INSTALL.md LICENSE pkg/
+          ditto -c -k --sequesterRsrc pkg Threes-Company-macOS.zip
+      - name: Check the AU
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R pkg/*.component ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar || true
+          auval -v aufx ThCo OtKa | tail -20
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Threes-Company-macOS
+          path: Threes-Company-macOS.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Threes-Company-Windows/Threes-Company-Windows.zip
+            Threes-Company-macOS/Threes-Company-macOS.zip

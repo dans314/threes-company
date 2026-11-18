@@ -1,0 +1,18 @@
+# build output
+build/
+Backups/
+.work/
+*.o
+*.so
+# macOS / external-drive litter
+.DS_Store
+._*
+# kept on this drive only, not on GitHub
+BACKUP.md
+DESIGN.md
+docs/references/
+docs/screenshots/
+tools/mockups/
+tests/browser/
+tests/gui_dump_*.js
+**/_local_*
