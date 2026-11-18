@@ -16,14 +16,17 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Get the WebView2 SDK
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2 -OutFile webview2.zip
           Expand-Archive webview2.zip -DestinationPath webview2
+      - name: Tools on this machine
+        shell: pwsh
+        run: cmake --version; cmake --help | Select-String 'Visual Studio'
       - name: Configure
-        run: cmake -B build -G "Visual Studio 17 2022" -A x64 -T ClangCL -DWEBVIEW2_DIR="${{ github.workspace }}/webview2"
+        run: cmake -B build -A x64 -T ClangCL -DWEBVIEW2_DIR="${{ github.workspace }}/webview2"
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: List what was built
@@ -46,9 +49,9 @@ jobs:
           path: Threes-Company-Windows.zip
 
   macos:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configure
         run: cmake -B build -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
       - name: Build
