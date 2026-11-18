@@ -16,6 +16,9 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# Windows: build everything against the static C++ runtime (/MT), so all the libraries match
+# and the plugin needs no Visual C++ redistributable on the user's PC.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
 
 include(FetchContent)
 # clap and clap-wrapper (MIT). clap-wrapper downloads the VST3 SDK (MIT since 3.8) and Apple's AudioUnitSDK itself.
