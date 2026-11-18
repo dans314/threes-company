@@ -2,7 +2,7 @@
 #
 # macOS:    sh build-all-mac.sh            (needs CMake: brew install cmake)
 # Windows:  done by GitHub Actions (.github/workflows/build.yml); by hand:
-#           cmake -B build -G "Visual Studio 17 2022" -A x64 -T ClangCL -DWEBVIEW2_DIR=<nuget package folder>
+#           cmake -B build -A x64 -T ClangCL -DWEBVIEW2_DIR=<nuget package folder>
 #           cmake --build build --config Release
 #
 # The quick CLAP-only Mac build (build-mac.sh) still works and does not need CMake.
@@ -55,7 +55,11 @@ elseif(WIN32)
   target_sources(threes-company-impl PRIVATE src/tc_gui_win.cpp)
   target_include_directories(threes-company-impl PRIVATE ${WEBVIEW2_DIR}/build/native/include)
   target_link_libraries(threes-company-impl PUBLIC ${WEBVIEW2_DIR}/build/native/x64/WebView2LoaderStatic.lib version shlwapi ole32 shell32 uuid)
-  target_compile_definitions(threes-company-impl PUBLIC NOMINMAX _CRT_SECURE_NO_WARNINGS)
+  # _USE_MATH_DEFINES: Microsoft's <cmath> hides M_PI (used by sst-filters) without it
+  target_compile_definitions(threes-company-impl PUBLIC _USE_MATH_DEFINES NOMINMAX _CRT_SECURE_NO_WARNINGS)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(threes-company-impl PRIVATE /clang:-ferror-limit=0) # show every error, not the first 20
+  endif()
   set(TC_FORMATS CLAP VST3)
 else()
   set(TC_FORMATS CLAP VST3)
