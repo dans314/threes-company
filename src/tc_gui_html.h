@@ -202,7 +202,7 @@ footer .lim{font-variant-numeric:tabular-nums;font-weight:700}
 .hk .knob .kl{align-self:end;text-align:left}
 .hk .knob .kv{align-self:start;justify-self:start}
 nav .navr{display:flex;align-items:center;gap:14px;padding-bottom:3px}
-.pdd{min-width:190px}
+.pdd{width:190px;flex:none}.pdd .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}h1 .vname{white-space:nowrap}
 .strip .top .mflash{display:none;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:5px;white-space:nowrap}
 .strip.flash-up .top .mflash{display:inline-block;background:#FFC107;color:#2A1E00}
 .strip.flash-down .top .mflash{display:inline-block;background:#111;color:#fff}
@@ -358,8 +358,8 @@ function midColour() {
   return 'rgb(' + mix(silver, d < 0 ? [24, 26, 30] : [255, 193, 7], Math.abs(d) * 0.55).join(',') + ')';
 }
 // Mid's lines and rings: the same silver, deeper (about #7D8794), so they read on white
-function midLine() { const c = midColour().match(/\d+/g).map(Number); return 'rgb(' + c.map((v, i) => Math.round(S.dark ? v : v * 0.55 + [40, 4)TCHTML"
-R"TCHTML(8, 60][i] * 0.45)).join(',') + ')'; }
+function midLine() { co)TCHTML"
+R"TCHTML(nst c = midColour().match(/\d+/g).map(Number); return 'rgb(' + c.map((v, i) => Math.round(S.dark ? v : v * 0.55 + [40, 48, 60][i] * 0.45)).join(',') + ')'; }
 // the Lean colour (as on the selected tab), kept readable on the dark background at the Low end
 function leanInk() {
   const c = getComputedStyle(document.documentElement).getPropertyValue('--tabc').trim() || T.ink;
@@ -511,9 +511,9 @@ function knobMenu(anchor, p, k) {
     items.push({ sep: true });
   }
   if (t > 0) {
-    items.push({ head: 'Modulate with' });
-    SOURCES.forEach((src, i) => items.push({ label: src, value: 'm' + (i + 1), note: mine.some(([sp]) => )TCHTML"
-R"TCHTML(Math.round(sp.v) === i + 1) ? 'on' : '' }));
+    items.push({ head: 'Modu)TCHTML"
+R"TCHTML(late with' });
+    SOURCES.forEach((src, i) => items.push({ label: src, value: 'm' + (i + 1), note: mine.some(([sp]) => Math.round(sp.v) === i + 1) ? 'on' : '' }));
     if (mine.length) items.push({ label: 'Remove modulation (' + mine.length + ')', value: 'rm' });
     items.push({ sep: true });
   }
@@ -666,11 +666,11 @@ function openPop(anchor, items, current, onPick, opts) {
     pop.appendChild(cols);
   } else {
     const l = h('div', { class: 'list', style: `min-width:${Math.max(120, opts.width || anchor.offsetWidth)}px;max-height:420px;overflow:auto` });
-    items.forEach((it) => l.appendChild(mkItem(it))); pop.appendChild(l);
+    items.forEach((it) => l.appendChild(mkItem(it))); p)TCHTML"
+R"TCHTML(op.appendChild(l);
   }
   placePop(pop, anchor);
-  const sel = pop.querySelector('button.sel') || pop.querySelector('butt)TCHTML"
-R"TCHTML(on:not(:disabled)'); if (sel) sel.focus({ preventScroll: true });
+  const sel = pop.querySelector('button.sel') || pop.querySelector('button:not(:disabled)'); if (sel) sel.focus({ preventScroll: true });
 }
 // keyboard in the open pop-up
 document.addEventListener('keydown', (e) => {
@@ -804,9 +804,9 @@ function respFn(model, name, q) {
   const res2 = (w) => Math.sqrt((1 - w * w) ** 2 + (w / q) ** 2);
   // a resonant two-pole section, then plain poles for the rest of the slope
   const slope = (first, one, two) => (w) => { if (order <= 1) return one(w); let a = first(w); for (let r = order - 2; r > 0; r -= 2) a *= r === 1 ? one(w) : two(w); return a; };
-  const lp = slope((w) => 1 / res2(w), (w) => 1 / Math.sqrt(1 + w * w), (w) => 1 / (1 + w * w));
-  const hp = slope((w) )TCHTML"
-R"TCHTML(=> w * w / res2(w), (w) => w / Math.sqrt(1 + w * w), (w) => w * w / (1 + w * w));
+)TCHTML"
+R"TCHTML(  const lp = slope((w) => 1 / res2(w), (w) => 1 / Math.sqrt(1 + w * w), (w) => 1 / (1 + w * w));
+  const hp = slope((w) => w * w / res2(w), (w) => w / Math.sqrt(1 + w * w), (w) => w * w / (1 + w * w));
   const notch = (w) => Math.abs(1 - w * w) / Math.sqrt((1 - w * w) ** 2 + (w / Math.max(0.35, q * 0.6)) ** 2);
   if (model === 'None' || !name) return () => 1;
   if (model === 'Z-Plane') { const zf = zMag(name, 0.5, 0, 0.5); return (w) => zf(w * 1000); }
@@ -963,9 +963,9 @@ function randomLocks(b) {
   setMany(ch); refreshLockCells();
 }
 function randomMutation() {
-  const ch = [[P('Mutation Trigger'), Math.floor(Math.random() * 5)], [P('Mutation Sensitivity'), rnd(0.3, 0.8)], [P('Mutation Hold-off'), Math.floor(Math.random() * 7)]];
-  const modes = pick([[1,)TCHTML"
-R"TCHTML( 2], [2, 1], [1, 1], [2, 2], [1, 0], [0, 2]]);
+  const ch = [[P('Mutation Trigger'), Math.floor(Math.random() * 5)], [P('Mut)TCHTML"
+R"TCHTML(ation Sensitivity'), rnd(0.3, 0.8)], [P('Mutation Hold-off'), Math.floor(Math.random() * 7)]];
+  const modes = pick([[1, 2], [2, 1], [1, 1], [2, 2], [1, 0], [0, 2]]);
   ['Low', 'High'].forEach((b, i) => {
     const pre = 'Mutation ' + b + ' ';
     ch.push([P(pre + 'Answer'), modes[i]], [P(pre + 'Moves'), Math.floor(Math.random() * 5)], [P(pre + 'Amount'), rnd(0.2, 0.75)], [P(pre + 'Chance'), chance(0.5) ? 1 : rnd(0.4, 1)], [P(pre + 'Delay'), Math.floor(Math.random() * 5)]);
@@ -1106,8 +1106,8 @@ function clipButton(kind, k, light) {
       if (v === 'swap') { swapBands(k, 2 - k); return; }
       if (v === 'copy') copyPanel(kind, k);
       else if (v === 'paste') pastePanel(kind, k);
-      else { const keep = S.clip; copyPanel(kind, k); for (let j = 0; j < c.n; ++j) if (j !== k && (v === 'all' || v ===)TCHTML"
-R"TCHTML( 'to' + j)) pastePanel(kind, j); S.clip = keep; toast('Copied ' + c.name(k) + (v === 'all' ? ' to the other two' : ' to ' + c.name(+v.slice(2)))); }
+)TCHTML"
+R"TCHTML(      else { const keep = S.clip; copyPanel(kind, k); for (let j = 0; j < c.n; ++j) if (j !== k && (v === 'all' || v === 'to' + j)) pastePanel(kind, j); S.clip = keep; toast('Copied ' + c.name(k) + (v === 'all' ? ' to the other two' : ' to ' + c.name(+v.slice(2)))); }
     }, { width: 200 });
   };
   if (light) b.style.color = 'inherit';
@@ -1241,10 +1241,10 @@ function refreshSpecBox() { if (S.specBox) S.specBox.style.display = spectralOn(
 function spectralOn() { return mode() === 'Par' && P('Parallel Split') && P('Parallel Split').v >= 0.5; }
 function tonalOn() { return spectralOn() && P('Spectral Split By').v >= 0.5; }
 
-function stripSub(b) { return tonalOn() ? ['tones', 'hits', 'air'][b] : ''; }
+function stripSub(b) { return )TCHTML"
+R"TCHTML(tonalOn() ? ['tones', 'hits', 'air'][b] : ''; }
 function buildStrips() {
-  const box = document.getElementById('strips'))TCHTML"
-R"TCHTML(; box.innerHTML = ''; KNOBS.length = 0;
+  const box = document.getElementById('strips'); box.innerHTML = ''; KNOBS.length = 0;
   for (let i = DICE.length - 1; i >= 0; --i) if (DICE[i].closest && DICE[i].closest('#strips')) DICE.splice(i, 1);
   const m = mode();
   for (let b = 0; b < 3; ++b) {
@@ -1386,8 +1386,8 @@ function pageSway() {
   const sync = P('Sway Sync');
   const rateBox = h('div');
   const fillRate = () => { rateBox.innerHTML = ''; rateBox.append(sync.v >= 0.5 ? labelled('Length', sel(P('Sway Sync Length'), 92)) : knob(P('Sway Rate'), 'Rate', ink)); };
-  const tr = h('canvas', { style: 'flex:1;width:100%;min-height:64px;background:var(--graph);border-radius:8px;border:1px solid var(--line)', 'aria-label': 'The three stri)TCHTML"
-R"TCHTML(ps’ sway, as it moves' }); S.traceCanvas = tr; S.trace = [[], [], []];
+  const tr = h('canvas', { style: 'flex:1;width:100)TCHTML"
+R"TCHTML(%;min-height:64px;background:var(--graph);border-radius:8px;border:1px solid var(--line)', 'aria-label': 'The three strips’ sway, as it moves' }); S.traceCanvas = tr; S.trace = [[], [], []];
   // each band's own feel: Main (follows the main Motion), Smooth or Stepped; its speed against the main rate; its share; its slew
   const bandRow = (b) => {
     const pre = 'Sway ' + BAND[b] + ' ', col = () => bandColour(b), mo = P(pre + 'Motion'), slew = h('div', { class: 'hk' }, knob(P(pre + 'Slew'), 'Slew', col, 22));
@@ -1484,9 +1484,9 @@ function drawChaperone(u) {
     // the dot moves up or down with what it is given
     const dy = -Math.max(-1, Math.min(1, st / 12)) * H * 0.22;
     g.fillStyle = b === 2 ? '#FFC107' : bandColour(0); g.beginPath(); g.arc(x, y + dy, 9 + 4 * pulse, 0, Math.PI * 2); g.fill();
-    if (S.dark && b === 0) { g.strokeStyle = '#E9E6DF'; g.lineWidth = 1.5; g.stroke(); }
-    g.fillStyle = T.ink; g.font )TCHTML"
-R"TCHTML(= '700 11px -apple-system, sans-serif'; g.textAlign = 'center';
+ )TCHTML"
+R"TCHTML(   if (S.dark && b === 0) { g.strokeStyle = '#E9E6DF'; g.lineWidth = 1.5; g.stroke(); }
+    g.fillStyle = T.ink; g.font = '700 11px -apple-system, sans-serif'; g.textAlign = 'center';
     g.fillText((st >= 0 ? '+' : '') + st.toFixed(1) + ' st', x, Math.min(H - 3, y + dy + 24));
   });
   g.fillStyle = midColour(); g.beginPath(); g.arc(mx, my, 11 + 5 * pulse, 0, Math.PI * 2); g.fill(); g.strokeStyle = midLine(); g.lineWidth = 2; g.stroke();
@@ -1603,10 +1603,10 @@ function pageTune() {
     frame.setAttribute('x', xs(a) - 3); frame.setAttribute('width', xs(b + 1) - xs(a) + 2);
   };
   ['Tune On', 'Tune Root', 'Tune Scale', 'Tune Lowest', 'Tune Highest', 'Tune Tilt'].forEach((nm) => bind(P(nm), draw));
-  const col = (lbl, el) => h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: 'lbl', text: lbl }), el);
+  const col = (lbl, el) => h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: 'lbl',)TCHTML"
+R"TCHTML( text: lbl }), el);
   const left = card('flex:1;gap:10px',
-    h('div', { class: 'row' }, h('h2', { class: 'hd', text: ')TCHTML"
-R"TCHTML(TUNE', style: 'margin:0;font-size:15px' }), toggle(P('Tune On'), 'On'), h('div', { class: 'sp' }), h('span', { class: 'hint', text: 'Rings the notes of your key out of whatever comes in. Works in every routing.' })),
+    h('div', { class: 'row' }, h('h2', { class: 'hd', text: 'TUNE', style: 'margin:0;font-size:15px' }), toggle(P('Tune On'), 'On'), h('div', { class: 'sp' }), h('span', { class: 'hint', text: 'Rings the notes of your key out of whatever comes in. Works in every routing.' })),
     h('div', { class: 'row', style: 'gap:14px;flex-wrap:wrap;align-items:flex-end' },
       col('Root', seg(P('Tune Root'), ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'])), col('Scale', tip(sel(P('Tune Scale'), 150), 'Scale', 'Which notes ring. At the top: the root with one interval (Fifths up from A rings A and E; Fifths down rings A and D), or a chord. Below: full scales. Every choice rings in every octave of the range.')),
       col('Mode', tip(seg(P('Tune Mode')), 'Mode', 'Layer: your sound stays whole and the ringing goes on top. Blend: Amount crossfades from your sound to only the ringing.')),
@@ -1704,9 +1704,9 @@ function toggleSettings() {
     h('div', { class: 'row' }, h('h3', { class: 'hd', text: 'SETTINGS', style: 'margin:0;font-size:13px' }), h('div', { class: 'sp' }), h('button', { type: 'button', class: 'ibtn', text: '✕', 'aria-label': 'Close', onclick: () => box.remove() })),
     h('div', { class: 'lbl', text: 'About' }),
     h('div', { class: 'row', style: 'gap:12px;align-items:flex-start' },
-      h('div', { style: 'font-size:13px;line-height:1.45;flex:1' }, h('b', { text: 'Three’s Company ' + ((S.info && S.info.version) || '') }), h('br'), 'by Otis Kanno', h('br'),
-        h('span', { class: 'hint', text: 'Free software (GPL v3): anyone you share it with can get its source code. Fi)TCHTML"
-R"TCHTML(lters: Surge sst-filters. Started from Two Filters by BaconPaul.' })),
+      h('div', { style: 'font-size:13px;line-height:1.45;flex:1' }, h('b', { text: 'Three’s Company ' + ((S.info && S.info.version) || '') }), h('br'), 'by Otis Kanno', h('br'))TCHTML"
+R"TCHTML(,
+        h('span', { class: 'hint', text: 'Free software (GPL v3): anyone you share it with can get its source code. Filters: Surge sst-filters. Started from Two Filters by BaconPaul.' })),
       h('div', { class: 'col', style: 'align-items:center;gap:3px' }, h('img', { class: 'qr', src: QR_PNG, alt: 'QR code: beacons.ai/otiskanno' }), h('span', { class: 'hint', text: 'beacons.ai/otiskanno', style: 'font-size:10.5px' }), h('span', { class: 'hint', text: 'A link to my human-created music', style: 'font-size:10px;text-align:center;max-width:110px' }))),
     h('div', { style: 'height:1px;background:var(--line)' }),
     row(h('span', { text: 'Theme' }), choice([['Light', 0], ['Dark', 1]], S.prefs.dark ? 1 : 0, (v) => { S.prefs.dark = v; savePrefs(); if (!!v !== S.dark) { applyTheme(!!v); post('theme ' + (v ? 'dark' : 'light')); build(); box.remove(); toggleSettings(); } })),
@@ -1789,8 +1789,8 @@ function pageMutation() {
   S.histRows = hist;
   const histBox = card('gap:5px;padding:7px 12px', h('div', { class: 'row' }, h('div', { class: 'lbl', text: 'What happened: the last 16 times Mid fired (newest on the right)' }), h('div', { class: 'sp' }), h('span', { class: 'hint', style: 'font-size:11px', text: '▲ pushed up · ▼ pushed down · blank: no answer' })),
     h('div', { class: 'row' }, btag(1), hist[1]), h('div', { class: 'row' }, btag(0), hist[0]), h('div', { class: 'row' }, btag(2), hist[2]));
-  const page = h('div', { style: 'flex-direction:column;gap:8px' }, h('div', { class: 'row', style: 'align-items:stretch;gap:10px' }, )TCHTML"
-R"TCHTML(trig, resp(0, 'Mutation Low '), resp(2, 'Mutation High '), mut), histBox);
+  const page =)TCHTML"
+R"TCHTML( h('div', { style: 'flex-direction:column;gap:8px' }, h('div', { class: 'row', style: 'align-items:stretch;gap:10px' }, trig, resp(0, 'Mutation Low '), resp(2, 'Mutation High '), mut), histBox);
   setTimeout(() => S.drawMutNow && S.drawMutNow(), 0);
   return page;
 }
@@ -1913,8 +1913,8 @@ function refreshLfo() {
     const arp = (k, t) => h('button', { type: 'button', class: 'btn', style: 'height:26px;padding:0 9px', text: t, onclick: () => arpPattern(i, k, oct) });
     S.lfoUi.stepsBox.replaceChildren(
       h('div', { class: 'row', style: 'gap:8px;flex-wrap:wrap' }, labelled('Steps', stepper(cnt)), knob(P(pre + 'Glide'), 'Glide', ink, 28), labelled('Scale', sel(P(pre + 'Scale'), 104)), h('div', { class: 'sp' }),
-        h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: 'lbl', text: 'Arp pattern' }), h('div', { class: 'row', style: 'gap:4px' }, arp('up', 'Up'), arp('down', 'Down'), arp('up)TCHTML"
-R"TCHTML(down', 'Up-Down'), arp('random', 'Random'), octSeg, arp('clear', 'Clear')))),
+        h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: ')TCHTML"
+R"TCHTML(lbl', text: 'Arp pattern' }), h('div', { class: 'row', style: 'gap:4px' }, arp('up', 'Up'), arp('down', 'Down'), arp('updown', 'Up-Down'), arp('random', 'Random'), octSeg, arp('clear', 'Clear')))),
       sb.box);
     sb.box.style.minHeight = '90px';
   }
@@ -2053,9 +2053,9 @@ function lockCells(b) {
   const box = h('div', { class: 'steps lockcells', role: 'group', 'aria-label': BAND[b] + ' P-lock steps' }), cells = [];
   for (let j = 0; j < 16; ++j) {
     const tags = h('div', { class: 'lt' }), num = h('div', { class: 'ln' }), el = h('div', { class: 'st' }, num, tags);
-    el.style.setProperty('--lc', b === 2 ? '#FFC107' : bandColour(b)); el.style.setProperty('--lt', b === 2 ? '#2A1E00' : '#fff'); el.style.setProperty('--sc', b === 2 ? 'var(--ink)' : '#FFC107');
-    el.addEventListene)TCHTML"
-R"TCHTML(r('click', () => { const i = j + off; selectLock(S.lockSel && S.lockSel.b === b && S.lockSel.step === i ? null : { b, step: i }); });
+    el.style.setProperty('--lc', b === 2 ? '#FFC107' : bandColour(b)); el.style.setProperty('--lt',)TCHTML"
+R"TCHTML( b === 2 ? '#2A1E00' : '#fff'); el.style.setProperty('--sc', b === 2 ? 'var(--ink)' : '#FFC107');
+    el.addEventListener('click', () => { const i = j + off; selectLock(S.lockSel && S.lockSel.b === b && S.lockSel.step === i ? null : { b, step: i }); });
     el.addEventListener('dblclick', () => clearLockStep(b, j + off));
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault(); const i = j + off;
@@ -2167,8 +2167,8 @@ function pageEnv() {
 }
 function pageMix() {
   const m = mode(), pre = m + ' ';
-  const blocks = [card('flex:1', h('div', { class: 'row' }, h('div', { class: 'lbl', text: 'Feedback' }), h('div', { class: 'sp' }), toggle(P(pre + 'Feedback On'), 'On')), h('div', { class: 'row' }, knob(P(p)TCHTML"
-R"TCHTML(re + 'Feedback'), 'Amount', ink, 50), knob(P(pre + 'Feedback Tone'), 'Tone', ink, 50)), h('div', { class: 'hint', text: 'Warm and saturating; dies away when the sound stops.' })),
+  const blocks = [card('flex:1', h('div', { class: 'row' }, h('div', { class: 'lbl', te)TCHTML"
+R"TCHTML(xt: 'Feedback' }), h('div', { class: 'sp' }), toggle(P(pre + 'Feedback On'), 'On')), h('div', { class: 'row' }, knob(P(pre + 'Feedback'), 'Amount', ink, 50), knob(P(pre + 'Feedback Tone'), 'Tone', ink, 50)), h('div', { class: 'hint', text: 'Warm and saturating; dies away when the sound stops.' })),
     card('flex:1', h('div', { class: 'row' }, h('div', { class: 'lbl', text: 'Noise' }), h('div', { class: 'sp' }), toggle(P(pre + 'Noise On'), 'On')), h('div', { class: 'row' }, knob(P(pre + 'Noise'), 'Amount', ink, 50), knob(P(pre + 'Noise Color'), 'Color', ink, 50)), h('div', { class: 'hint', text: 'Fed into the filters, so it rings with them.' })),
     card('flex:1.3', h('div', { class: 'lbl', text: 'Gain' }), h('div', { class: 'row' }, knob(P(pre + 'Input'), 'Input', ink, 50), knob(P(pre + 'Output'), 'Output', ink, 50), knob(P(pre + 'Mix'), 'Mix', leanInk, 50)))];
   if (m === 'Par' && !spectralOn()) blocks.push(card('flex:1.1', h('div', { class: 'lbl', text: 'Split points' }), h('div', { class: 'row' }, knob(P('Par Split Low/Mid'), 'Low/Mid', ink, 50), knob(P('Par Split Mid/High'), 'Mid/High', ink, 50))));
@@ -2291,8 +2291,8 @@ function drawGraph() {
   const m = mode(), par = m === 'Par';
   const hz = (st) => 440 * Math.pow(2, st / 12);
   const specOn = spectralOn(), tonal = tonalOn();
-  const f1 = par ? hz(S.mods[P('Par Split Low/Mid').id] ?? P('Par Split Low/Mid').v) : 0, f2 = par ? hz(S.mods[P('Par Split Mid/High').id] ?? P()TCHTML"
-R"TCHTML('Par Split Mid/High').v) : 0;
+  const f1 = par ? hz(S.)TCHTML"
+R"TCHTML(mods[P('Par Split Low/Mid').id] ?? P('Par Split Low/Mid').v) : 0, f2 = par ? hz(S.mods[P('Par Split Mid/High').id] ?? P('Par Split Mid/High').v) : 0;
   const resp = [], solo = par && [0, 1, 2].some((b) => P('Par ' + BAND[b] + ' Solo').v >= 0.5);
   for (let b = 0; b < 3; ++b) {
     const pre = m + ' ' + BAND[b] + ' ', fp = P(pre + 'Filter Type'), vp = P(pre + 'Filter Variant'), on = P(pre + 'Filter On').v >= 0.5;
