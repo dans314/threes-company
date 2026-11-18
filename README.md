@@ -40,7 +40,7 @@ The menu starts with **Start**: Init and 16 presets that each show off a feature
 
 ## Install
 
-Download the zip for your computer from the latest build (the **Actions** tab, then the newest green run's **Artifacts**), then:
+Download the zip for your computer from **[Releases](../../releases/latest)**: `Threes-Company-Windows.zip` or `Threes-Company-macOS.zip`. Each has a READ ME FIRST install guide, the [user manual](docs/Threes-Company-User-Manual.pdf) and the quick reference inside. In short:
 
 - **Mac:** `Threes Company.clap` → `~/Library/Audio/Plug-Ins/CLAP/`, `Threes Company.vst3` → `~/Library/Audio/Plug-Ins/VST3/`, `Threes Company.component` → `~/Library/Audio/Plug-Ins/Components/`.
 - **Windows 10 / 11:** `Threes Company.clap` → `C:\Program Files\Common Files\CLAP\`, the `Threes Company.vst3` folder → `C:\Program Files\Common Files\VST3\`.

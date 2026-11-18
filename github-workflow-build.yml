@@ -42,6 +42,9 @@ jobs:
           Copy-Item -Recurse $vst3.FullName pkg/
           Copy-Item INSTALL.md pkg/
           Copy-Item LICENSE pkg/
+          Copy-Item docs/Install-Windows.pdf "pkg/READ ME FIRST - Install on Windows.pdf"
+          Copy-Item docs/Threes-Company-User-Manual.pdf "pkg/Three's Company User Manual.pdf"
+          Copy-Item docs/Threes-Company-Quick-Reference.pdf "pkg/Three's Company Quick Reference.pdf"
           Compress-Archive -Path pkg/* -DestinationPath "Threes-Company-Windows.zip"
       - uses: actions/upload-artifact@v4
         with:
@@ -64,6 +67,9 @@ jobs:
           find build -name "*.component" -maxdepth 4 -type d -path "*Release*" -exec cp -R {} pkg/ \;
           for b in pkg/*.clap pkg/*.vst3 pkg/*.component; do codesign --force --deep --sign - "$b"; done
           cp INSTALL.md LICENSE pkg/
+          cp docs/Install-Mac.pdf "pkg/READ ME FIRST - Install on Mac.pdf"
+          cp docs/Threes-Company-User-Manual.pdf "pkg/Three's Company User Manual.pdf"
+          cp docs/Threes-Company-Quick-Reference.pdf "pkg/Three's Company Quick Reference.pdf"
           ditto -c -k --sequesterRsrc pkg Threes-Company-macOS.zip
       - name: Check the AU
         run: |
@@ -81,9 +87,20 @@ jobs:
     needs: [windows, macos]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
       - uses: softprops/action-gh-release@v2
         with:
+          name: Three's Company ${{ github.ref_name }}
+          body: |
+            A three-strip filter effect by Otis Kanno.
+
+            **Windows 10 / 11:** download `Threes-Company-Windows.zip` (CLAP and VST3, for FL Studio and other DAWs).
+            **Mac (macOS 11+, Apple Silicon and Intel):** download `Threes-Company-macOS.zip` (CLAP, VST3 and AU).
+
+            Each zip has a READ ME FIRST install guide, the user manual and the one-page quick reference. The manual and quick reference are also attached below on their own.
           files: |
             Threes-Company-Windows/Threes-Company-Windows.zip
             Threes-Company-macOS/Threes-Company-macOS.zip
+            docs/Threes-Company-User-Manual.pdf
+            docs/Threes-Company-Quick-Reference.pdf
