@@ -1681,12 +1681,14 @@ static void testZPlane()
         return 10 * std::log10(sum / std::max(1L, n) + 1e-20);
     };
     float c0 = (float)hzToSemi(1000.0);
-    double a730 = level(730, 0, c0), a270 = level(270, 0, c0), b730 = level(730, 1, c0), b270 = level(270, 1, c0);
-    double up = level(730 * 2, 0, c0 + 12);
-    bool finite = std::isfinite(a730) && std::isfinite(b270);
-    check(finite && a730 - a270 > 6 && b270 - b730 > 6 && std::fabs(up - a730) < 4, "Z-Plane morph and cutoff",
-          fmt("Ah frame: 730 Hz %.1f dB, 270 Hz %.1f dB; Ee frame: 730 Hz %.1f dB, 270 Hz %.1f dB; an octave up moves the peak (%.1f dB at 1460 Hz)",
-              a730, a270, b730, b270, up));
+    // first formants measured from E-mu's "Vocal Ah-Ay-Ee": Ah 551 Hz, Ay (middle frame) 334 Hz, Ee 278 Hz
+    double a551 = level(551, 0, c0), a278 = level(278, 0, c0), b551 = level(551, 1, c0), b278 = level(278, 1, c0);
+    double m334 = level(334, 0.5f, c0), m551 = level(551, 0.5f, c0);
+    double up = level(551 * 2, 0, c0 + 12);
+    bool finite = std::isfinite(a551) && std::isfinite(b278) && std::isfinite(m334);
+    check(finite && a551 - a278 > 6 && b278 - b551 > 6 && m334 - m551 > 6 && std::fabs(up - a551) < 4, "Z-Plane morph and cutoff",
+          fmt("Ah frame: 551 Hz %.1f dB, 278 Hz %.1f dB; Ay (middle): 334 Hz %.1f dB, 551 Hz %.1f dB; Ee frame: 551 Hz %.1f dB, 278 Hz %.1f dB; an octave up moves the peak (%.1f dB at 1102 Hz)",
+              a551, a278, m334, m551, b551, b278, up));
 }
 
 // Mod Depth (master and per strip) and a strip's own Mix

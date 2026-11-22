@@ -99,12 +99,17 @@ struct ZDesign
 {
     const char *name;
     ZFrame a, b;
+    ZFrame m{};       // optional middle frame: Morph goes A -> M -> B (E-mu's three-vowel filters, e.g. Ah-Ay-Ee)
+    bool mid{false};
 };
 inline const ZDesign *zDesigns(int &count)
 {
     static const ZDesign d[] = {
-        {"Vowel Ah > Ee", {{730, 1090, 2440, 3400, 150, 9000}, {14, 11, 8, 4, -6, -10}, {7, 8, 9, 9, 0.7f, 0.7f}},
-                          {{270, 2290, 3010, 3700, 150, 9000}, {13, 12, 9, 4, -6, -10}, {7, 9, 10, 9, 0.7f, 0.7f}}},
+        // Ah -> Ay -> Ee, measured from E-mu's ESI "Vocal Ah-Ay-Ee" (2 demo recordings, Nov 2026): a rounder Ah,
+        // the first formant falling early (by the middle) and a wide, bright Ee
+        {"Vowel Ah > Ee", {{551, 984, 2186, 3300, 150, 9000}, {14, 11, 8, 4, -6, -10}, {7, 8, 9, 9, 0.7f, 0.7f}},
+                          {{278, 2755, 4159, 5300, 150, 9000}, {13, 12, 9, 4, -6, -10}, {7, 9, 10, 9, 0.7f, 0.7f}},
+                          {{334, 1857, 3281, 4200, 150, 9000}, {13, 12, 9, 4, -6, -10}, {7, 9, 10, 9, 0.7f, 0.7f}}, true},
         {"Vowel Oh > Ah", {{570, 840, 2410, 3300, 150, 9000}, {14, 11, 7, 3, -6, -12}, {7, 8, 9, 9, 0.7f, 0.7f}},
                           {{730, 1090, 2440, 3400, 150, 9000}, {14, 11, 8, 4, -6, -10}, {7, 8, 9, 9, 0.7f, 0.7f}}},
         {"Vowel Oo > Eh", {{300, 870, 2240, 3200, 150, 9000}, {15, 10, 6, 3, -6, -14}, {7, 8, 9, 9, 0.7f, 0.7f}},
@@ -137,6 +142,20 @@ inline const ZDesign *zDesigns(int &count)
                        {{220, 440, 660, 880, 1100, 1320}, {12, 12, 11, 10, 9, 8}, {12, 14, 16, 18, 20, 22}}},
         {"Guitar Body", {{100, 210, 390, 800, 2200, 4800}, {9, 7, -6, 4, 3, -8}, {6, 8, 3, 4, 3, 1.5f}, 7000, 0.7f},
                         {{120, 260, 470, 1100, 2700, 5600}, {6, 10, -9, 7, 6, -4}, {5, 9, 4, 5, 4, 1.5f}, 9000, 0.7f}},
+        // ----- 0.19: measured from E-mu ESI demo recordings (always add new shapes at the end) -----
+        // Oo -> Oh -> Ah, after "Vocal Oo-Ah"
+        {"Vowel Oo > Ah", {{269, 707, 2200, 3200, 150, 9000}, {15, 10, 5, 2, -6, -14}, {7, 8, 9, 9, 0.7f, 0.7f}},
+                          {{640, 1426, 2543, 3800, 150, 9000}, {14, 11, 8, 4, -6, -10}, {7, 8, 9, 9, 0.7f, 0.7f}},
+                          {{445, 911, 2300, 3300, 150, 9000}, {14, 11, 6, 3, -6, -12}, {7, 8, 9, 9, 0.7f, 0.7f}}, true},
+        // after "Phaser 1": two deep notches two octaves apart, travelling two octaves
+        {"Phaser 2-Notch", {{460, 1840, 5000, 9000, 12000, 15000}, {-30, -30, 0, 0, 0, 0}, {2, 2, 1, 1, 1, 1}},
+                           {{1900, 7600, 5000, 9000, 12000, 15000}, {-30, -30, 0, 0, 0, 0}, {2, 2, 1, 1, 1, 1}}},
+        // after "Phaser 2": two notches whose gap closes from about 3 1/4 octaves to 2 1/2 as they rise
+        {"Phaser Wide", {{230, 2380, 5000, 9000, 12000, 15000}, {-30, -30, 0, 0, 0, 0}, {2, 2, 1, 1, 1, 1}},
+                        {{2050, 11000, 5000, 9000, 12000, 15000}, {-30, -30, 0, 0, 0, 0}, {2, 2, 1, 1, 1, 1}}},
+        // after "Bat-Phaser": a strong moving peak with a notch about 3 1/2 semitones under it
+        {"Bat Phaser", {{750, 610, 5000, 9000, 12000, 15000}, {15, -24, 0, 0, 0, 0}, {4, 4, 1, 1, 1, 1}},
+                       {{6000, 4850, 5000, 9000, 12000, 15000}, {15, -24, 0, 0, 0, 0}, {4, 4, 1, 1, 1, 1}}},
     };
     count = (int)(sizeof(d) / sizeof(d[0]));
     return d;
@@ -1524,6 +1543,15 @@ class Engine
         const ZDesign *d = zDesigns(n);
         const ZDesign &D = d[std::clamp(zDesign[b], 0, n - 1)];
         float t = std::clamp(morph, 0.f, 1.f);
+        // a three-frame shape: the first half of Morph goes A -> M, the second half M -> B
+        const ZFrame *fa = &D.a, *fb = &D.b;
+        if (D.mid)
+        {
+            if (t <= 0.5f)
+                fb = &D.m, t = 2.f * t;
+            else
+                fa = &D.m, t = 2.f * (t - 0.5f);
+        }
         float shift = std::exp2(3.f * std::tanh((cutoffSemi - hzToSemi(1000.0)) / 36.f)); // Frequency Tracking
         float qs = 0.5f + 2.5f * std::pow(std::clamp(reso, 0.f, 1.f), 1.5f), gs = 0.6f + 0.8f * std::clamp(reso, 0.f, 1.f); // Transform 2
         const double fMax = 0.45 * innerRate;
@@ -1543,7 +1571,7 @@ class Engine
         float peakA = 0.f, peakB = 0.f;
         for (int k = 0; k < zStages; ++k)
         {
-            ZBiquad A = frameStage(D.a, k, peakA), B = frameStage(D.b, k, peakB);
+            ZBiquad A = frameStage(*fa, k, peakA), B = frameStage(*fb, k, peakB);
             double a1, a2, n1, n2;
             zMove(A.a1, A.a2, B.a1, B.a2, t, a1, a2);                                             // the poles
             double za = std::fabs(A.b0) > 1e-12 ? A.b0 : 1e-12, zb = std::fabs(B.b0) > 1e-12 ? B.b0 : 1e-12;

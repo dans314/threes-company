@@ -16,3 +16,5 @@ tools/mockups/
 tests/browser/
 tests/gui_dump_*.js
 **/_local_*
+# a clone of this project made inside it (not part of the project)
+/Threes Company/

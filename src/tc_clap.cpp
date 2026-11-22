@@ -71,7 +71,7 @@ struct ScopedNoDenormals
 // ---------------------------------------------------------------------------
 // Parameters. Ids never change once a version is out; new ones get new ids.
 // ---------------------------------------------------------------------------
-inline const char *pluginVersion() { return "0.18.0"; }
+inline const char *pluginVersion() { return "0.19.0"; }
 
 // ----- settings kept on this computer (not in projects): defaults for new copies, and hover tips
 struct Prefs
@@ -1295,7 +1295,7 @@ bool stateSave(const clap_plugin_t *p, const clap_ostream_t *stream)
 // every setting as text; withView adds the window's theme and size (projects yes, presets no)
 static std::string stateText(Plugin *pl, bool withView)
 {
-    std::string s = "THREESCOMPANY 2\n";
+    std::string s = "THREESCOMPANY 3\n";
     const auto &d = paramDefs();
     char b[64];
     for (size_t i = 0; i < d.size(); ++i)
@@ -1473,6 +1473,28 @@ static bool loadStateText(Plugin *pl, const std::string &s)
             }
         }
         pos = next;
+    }
+    // Saved before 0.19 (versions 1 and 2): the Z-Plane list had 16 shapes, and a strip's shape is stored as a
+    // 0..1 position in that list. New shapes are added at the end, so move old positions onto the same shape.
+    {
+        int ver = std::atoi(s.c_str() + 14);
+        bool zCurrent = s.substr(0, s.find('\n')).find("zcur") != std::string::npos;
+        const int zModel = modelIndexByName("Z-Plane"), zOld = 16;
+        int zNow = 0;
+        zDesigns(zNow);
+        if (ver < 3 && !zCurrent && zModel > 0 && zNow != zOld)
+            for (int m = 0; m < 2; ++m)
+                for (int b = 0; b < numBands; ++b)
+                {
+                    auto mi = paramIndex().find(bandBase(m, b) + oModel), vi = paramIndex().find(bandBase(m, b) + oVariant);
+                    if (mi == paramIndex().end() || vi == paramIndex().end())
+                        continue;
+                    if ((int)std::lround(pl->value[(size_t)mi->second].load()) != zModel)
+                        continue;
+                    float v = pl->value[(size_t)vi->second].load();
+                    int idx = std::clamp((int)std::lround(v * (float)(zOld - 1)), 0, zOld - 1);
+                    pl->value[(size_t)vi->second].store((float)idx / (float)(zNow - 1), std::memory_order_relaxed);
+                }
     }
     for (int i = 0; i < numLfos; ++i)
         pl->applyCurve(i);
@@ -1807,7 +1829,7 @@ size_t &presetLegacyCount() { static size_t n = 0; return n; }
 static std::string presetText(size_t index)
 {
     const auto &ps = presetList();
-    std::string t = index < presetLegacyCount() ? "THREESCOMPANY 1\n" : "THREESCOMPANY 2\n";
+    std::string t = index < presetLegacyCount() ? "THREESCOMPANY 1 zcur\n" : "THREESCOMPANY 3\n"; // factory presets are built with the current Z-Plane list
     if (index >= ps.size())
         return t;
     const bool classic = ps[index].group[0] == '~';
@@ -2786,7 +2808,7 @@ const clap_plugin_descriptor_t descriptor = {
     "",
     "",
     "",
-    "0.18.0",
+    "0.19.0",
     "Three filters and three drives, in three bands or in series, swaying together; the middle one conducts the other two. Each routing keeps its own settings.",
     features,
 };
