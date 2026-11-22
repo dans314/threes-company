@@ -6,7 +6,9 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><b>⬇ Download the latest version</b></a> ·
+  <a href="https://github.com/dans314/threes-company/releases/latest/download/Threes-Company-Windows.zip"><b>⬇ Download for Windows</b></a> ·
+  <a href="https://github.com/dans314/threes-company/releases/latest/download/Threes-Company-macOS.zip"><b>⬇ Download for Mac</b></a><br>
+  <a href="https://dans314.github.io/threes-company/">Download page</a> ·
   <a href="docs/Threes-Company-Quick-Reference.pdf">Quick reference</a> ·
   <a href="docs/Threes-Company-User-Manual.pdf">User manual</a> ·
   <a href="INSTALL.md">Install help</a>
@@ -48,7 +50,7 @@ It's made for playing, not just for fixing. Pick a preset from **Start**, hover 
 
 ## Get started in three steps
 
-1. **Download** the zip for your computer from [**Releases**](../../releases/latest): `Threes-Company-Windows.zip` (Windows 10 / 11) or `Threes-Company-macOS.zip` (macOS 11+, Apple Silicon and Intel).
+1. **Download** the zip for your computer: [**Windows 10 / 11**](https://github.com/dans314/threes-company/releases/latest/download/Threes-Company-Windows.zip) or [**Mac** (macOS 11+, Apple Silicon and Intel)](https://github.com/dans314/threes-company/releases/latest/download/Threes-Company-macOS.zip). Older versions are on [Releases](../../releases).
 2. **Install:** each zip has a **READ ME FIRST** guide for your computer. In short:
    - **Mac:** `.clap` → `~/Library/Audio/Plug-Ins/CLAP/`, `.vst3` → `~/Library/Audio/Plug-Ins/VST3/`, `.component` → `~/Library/Audio/Plug-Ins/Components/`
    - **Windows:** `.clap` → `C:\Program Files\Common Files\CLAP\`, `.vst3` → `C:\Program Files\Common Files\VST3\`

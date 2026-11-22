@@ -12,15 +12,21 @@ command -v cmake >/dev/null 2>&1 || { echo "CMake is missing. Install it with: b
 # Build on the internal disk: signing a bundle on an external drive can fail.
 WORK="$HOME/Library/Caches/ThreesCompanyBuild"
 mkdir -p "$WORK"
+# Unix Makefiles: needs only Apple's command line tools (xcode-select --install), not the full Xcode app.
+# A build folder made earlier with another generator is cleared first (CMake can't switch generators).
+if [ -f "$WORK/CMakeCache.txt" ] && ! grep -q "CMAKE_GENERATOR:INTERNAL=Unix Makefiles" "$WORK/CMakeCache.txt"; then
+  rm -rf "$WORK/CMakeCache.txt" "$WORK/CMakeFiles"
+fi
 echo "Configuring (the first time downloads the SDKs)..."
-cmake -S "$HERE" -B "$WORK" -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" >"$WORK/configure.log" 2>&1 || { tail -30 "$WORK/configure.log"; exit 1; }
+cmake -S "$HERE" -B "$WORK" -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" >"$WORK/configure.log" 2>&1 || { tail -30 "$WORK/configure.log"; exit 1; }
 echo "Building CLAP, VST3 and AU (a few minutes)..."
-cmake --build "$WORK" --config Release --parallel >"$WORK/build.log" 2>&1 || { grep -E "error" "$WORK/build.log" | head -30; exit 1; }
+cmake --build "$WORK" --parallel "$(sysctl -n hw.ncpu 2>/dev/null || echo 4)" >"$WORK/build.log" 2>&1 || { grep -E "error" "$WORK/build.log" | head -30; exit 1; }
 
 OUT="$HERE/build/mac-all"
 rm -rf "$OUT"; mkdir -p "$OUT"
 for ext in clap vst3 component; do
-  find "$WORK" -maxdepth 4 -type d -name "*.$ext" -path "*Release*" -exec cp -R {} "$OUT/" \;
+  b=$(find "$WORK" -maxdepth 4 -type d -name "Threes Company.$ext" -not -path "*/_deps/*" | head -1)
+  [ -n "$b" ] && cp -R "$b" "$OUT/" || echo "Warning: no Threes Company.$ext was built"
 done
 for b in "$OUT"/*; do codesign --force --deep --sign - "$b" >/dev/null 2>&1 || true; done
 
