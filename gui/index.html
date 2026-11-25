@@ -238,7 +238,7 @@ nav .navr{display:flex;align-items:center;gap:14px;padding-bottom:3px}
   <div class="strips" id="strips"></div>
   <nav><div class="tabs" id="tabs"></div><div class="navr" id="navr"></div></nav>
   <div id="pages"></div>
-  <footer><b>Three’s Company</b><span class="fh">v0.19</span><button type="button" class="fbtn" id="setBtn">⚙ Settings</button><span class="fh" style="flex:1;text-align:center">Double-click a knob to reset it · Shift-drag for fine control · ⧉ copies and pastes a panel · the dice are Random</span><span class="fh">Size</span><span class="zoom" id="zoomBox"></span><span class="fh">Limiter</span><span class="lim" id="limTxt">0.0 dB</span></footer>
+  <footer><b>Three’s Company</b><span class="fh">v0.20</span><button type="button" class="fbtn" id="setBtn">⚙ Settings</button><span class="fh" style="flex:1;text-align:center">Double-click a knob to reset it · Shift-drag for fine control · ⧉ copies and pastes a panel · the dice are Random</span><span class="fh">Size</span><span class="zoom" id="zoomBox"></span><span class="fh">Limiter</span><span class="lim" id="limTxt">0.0 dB</span></footer>
 </div>
 <div id="menu" class="pop" role="dialog" aria-label="Choose a filter"><div class="row" style="align-items:stretch;gap:0"><div class="list" id="mlist" role="listbox"></div><div class="desc" id="mdesc"></div></div></div>
 <div id="pop" class="pop" role="listbox"></div>
@@ -748,6 +748,9 @@ function bipBar(p, pre) { // a horizontal -100..+100 bar; a mod slot's also show
 const FDESC = {
   'None': ['Bypass', 'No filter: the band passes untouched, so only the drive and level work on it.'],
   'Z-Plane': ['Morphing · vocal · animated', 'Built like the E-mu Morpheus filter: a resonant low-pass and six parametric sections, stored as two whole filters (frames). Morph moves the poles and zeros from one frame to the other, so peaks glide rather than fade. Cutoff works as Frequency Tracking (slides the whole shape; designed at 1 kHz), Resonance as Transform 2 (the size and sharpness of the peaks). Unlike the Morpheus, all three move in real time.'],
+  'Air Z-Plane': ['E-mu e6400 · gritty · Airwindows', 'The Airwindows Z filters by Chris Johnson, made to sound and act like the E-mu e6400 Ultra: ZLowpass, ZHighpass, ZBandpass, ZNotch (the e6400 phaser), ZRegion and ZAcidLowpass. Plain, fixed shapes with the e6400’s clipping stages between them. Cutoff sets the frequency, Resonance drives the input into the clipping (on ZRegion it widens the region instead), and Morph stacks one to four poles (ZRegion: one to five; ZAcidLowpass: Meltdown).'],
+  'Air X-Series': ['Distorted · retro · Airwindows', 'The Airwindows X filters by Chris Johnson: distorted digital EQ inspired by retro sampler DSP. XLowpass, XHighpass, XBandpass, XNotch (the least glitchy) and XRegion (staggered bandpasses, for extreme sound-mangling). Cutoff sets the frequency, Resonance is Gain, driving the input into the distortion (on XRegion it widens the region instead), and Morph is Nuke: one to five distorted stages, getting more broken as it goes.'],
+  'Air Y-Series': ['Smooth to nasty · resonant · Airwindows', 'The Airwindows Y filters by Chris Johnson: soft and smooth to nasty, edgy, texture-varying filtering. YLowpass, YHighpass, YBandpass and YNotch. Cutoff sets the frequency, Resonance is Reson8 (a real resonant peak), and Morph is ResEdge, which changes the texture of the resonance from soft and round (low) through neutral (about 10%) to hard and nasty (high).'],
   'Vember Classic': ['Clean · versatile', 'Surge’s original multimode. Clean and exact at low resonance, gets thick and gritty when pushed. A safe all-rounder with the most types to pick from.'],
   'Vember Ladder': ['Warm · round', 'A four-pole ladder in the classic synth mould. Warm and round; turning up resonance thins the bass the way old ladders do.'],
   'OB-Xd 2-pole': ['Open · vocal', 'Gentle 12 dB slope modelled on Oberheim’s two-pole sound. Open and airy, with a soft, vocal resonance. Good for pads and sweeps that should not get thin.'],
@@ -783,7 +786,7 @@ const DDESC = {
 const VTYPES = ['Low Shelf', 'High Shelf', 'Notch+LP', 'Phaser+LP', 'Lowpass', 'Highpass', 'Bandpass', 'Notch', 'Peak', 'Allpass', 'Bell', 'Phaser'];
 // the response family a variant belongs to, and the rest of its name
 function vSplit(model, name) {
-  if (model === 'Z-Plane') return [name, ''];
+  if (model === 'Z-Plane' || model.startsWith('Air ')) return [name, ''];
   for (const t of VTYPES) if (name === t || name.startsWith(t + ' ')) return [t, name.slice(t.length).trim()];
   if (model === 'Tri-pole') { const i = name.indexOf(' '); return [name.slice(0, i), name.slice(i + 1)]; }
   if (model === 'Comb') { const i = name.indexOf(','); return i > 0 ? [name.slice(0, i).replace('Postive', 'Positive'), name.slice(i + 1).trim()] : [name, '']; }
@@ -801,6 +804,7 @@ function respFn(model, name, q) {
   const notch = (w) => Math.abs(1 - w * w) / Math.sqrt((1 - w * w) ** 2 + (w / Math.max(0.35, q * 0.6)) ** 2);
   if (model === 'None' || !name) return () => 1;
   if (model === 'Z-Plane') { const zf = zMag(name, 0.5, 0, 0.5); return (w) => zf(w * 1000); }
+  if (model.startsWith('Air ')) return airMag(name, 0.33, 0.3);
   if (model === 'Sample & Hold') return (w) => Math.max(0.05, Math.abs(Math.sin(Math.PI * w / 2) / (Math.PI * w / 2 + 1e-9)));
   if (model === 'Comb') {
     const g = Math.min(0.9, 0.4 + q * 0.08), neg = /negative/i.test(type) ? Math.PI : 0, bip = /bipolar/i.test(type);
@@ -823,6 +827,42 @@ function respFn(model, name, q) {
     case 'High Shelf': return (w) => 1 + w * w / (1 + w * w);
     case 'Bell': return (w) => 1 + (w / q) / res2(w) * 0.9;
     default: return lp;
+  }
+}
+// the Airwindows shapes (see tc_airz.h). w = f / cutoff. Z and X: Morph stacks the stages (Poles, Nuke);
+// Y: Resonance is the Q (Reson8), and Morph (ResEdge) changes the texture, not the shape
+const AIRZ_RANGE = { ZLowpass: [71.4, 19001], ZHighpass: [33.5, 9533], ZBandpass: [34.8, 14335], ZNotch: [43.9, 4744], ZRegion: [4, 20000], ZAcidLowpass: [0.1, 4410],
+  XLowpass: [44.1, 20000], XHighpass: [44.1, 20000], XBandpass: [2.2, 20000], XNotch: [13.2, 20000], XRegion: [4, 20000],
+  YLowpass: [15, 20000], YHighpass: [15, 20000], YBandpass: [15, 20000], YNotch: [15, 20000] };
+const airCut = (name, hz) => { const r = AIRZ_RANGE[name] || [20, 20000]; return Math.min(r[1], Math.max(r[0], hz)); };
+function airMag(name, morph, reso) {
+  const den = (w, q) => Math.sqrt((1 - w * w) ** 2 + (w / q) ** 2);
+  const bp = (w, q) => (w / q) / den(w, q), n = 1 + 3 * morph;
+  switch (name) {
+    case 'ZHighpass': return (w) => Math.pow(w * w / den(w, 1.0), n);
+    case 'ZBandpass': return (w) => Math.pow(bp(w, 0.314), n);
+    case 'ZNotch': return (w) => Math.pow(Math.abs(1 - w * w) / den(w, 0.618), n);
+    case 'XLowpass': case 'XHighpass': case 'XBandpass': case 'XNotch': {
+      const k = 1 + 4 * morph, q = 0.7071;
+      if (name === 'XHighpass') return (w) => Math.pow(w * w / den(w, q), k);
+      if (name === 'XBandpass') return (w) => Math.pow(bp(w, q), k);
+      if (name === 'XNotch') return (w) => Math.pow(Math.abs(1 - w * w) / den(w, q), k);
+      return (w) => Math.pow(1 / den(w, q), k);
+    }
+    case 'YLowpass': case 'YHighpass': case 'YBandpass': case 'YNotch': {
+      const C = name === 'YNotch' ? 0.1 + 0.9 * reso : reso, q = name === 'YNotch' ? C * C * 15 + 0.0001 : C * C * 15 + 0.5571;
+      if (name === 'YHighpass') return (w) => w * w / den(w, q);
+      if (name === 'YBandpass') return (w) => bp(w, q);
+      if (name === 'YNotch') return (w) => Math.abs(1 - w * w) / den(w, q);
+      return (w) => 1 / den(w, q);
+    }
+    case 'ZRegion': case 'XRegion': {
+      // up to five bandpasses walking from First down to Last; Resonance sets how far Last sits below
+      const m = 4 * morph, fk = [0, 1, 2, 3, 4].map((k) => Math.pow(1 - 0.6 * reso * k / 4, 3));
+      return (w) => { let a = bp(w, 0.7071); for (let k = 1; k < 5; ++k) a *= Math.pow(bp(w / fk[k], 0.7071), Math.min(1, Math.max(0, m - (k - 1)))); return a; };
+    }
+    case 'ZAcidLowpass': return (w) => 1 / Math.sqrt(1 + Math.pow(w, 2.4));
+    default: return (w) => Math.pow(1 / den(w, 0.7071), n);
   }
 }
 // Z-Plane: the six sections between the two frames, as the engine builds them
@@ -2281,6 +2321,10 @@ function drawGraph() {
     if (on && md.name === 'Z-Plane') {
       const coS = S.mods[P(pre + 'Cutoff').id] ?? P(pre + 'Cutoff').v, moS = S.mods[P(pre + 'Morph').id] ?? P(pre + 'Morph').v;
       const zf = zMag(vname, moS, 3 * Math.tanh((coS - 14.2131) / 36), res); shapeF0 = (w) => zf(w * cut);
+    }
+    if (on && md.name.startsWith('Air ')) {
+      const moS = S.mods[P(pre + 'Morph').id] ?? P(pre + 'Morph').v, fc = airCut(vname, cut), af = airMag(vname, moS, res);
+      shapeF0 = (w) => af(w * cut / fc);
     }
     const shapeF = bk ? (w) => shapeF0(w) * bk(w * cut) : shapeF0;
     const lvl = Math.pow(10, (S.mods[P(pre + 'Level').id] ?? P(pre + 'Level').v) / 20);

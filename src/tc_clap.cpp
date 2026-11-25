@@ -71,7 +71,7 @@ struct ScopedNoDenormals
 // ---------------------------------------------------------------------------
 // Parameters. Ids never change once a version is out; new ones get new ids.
 // ---------------------------------------------------------------------------
-inline const char *pluginVersion() { return "0.19.0"; }
+inline const char *pluginVersion() { return "0.20.0"; }
 
 // ----- settings kept on this computer (not in projects): defaults for new copies, and hover tips
 struct Prefs
@@ -1817,6 +1817,113 @@ static const std::vector<TcPreset> &presetList()
             F("Par", "Low", "Z-Plane", "Bell Ring", 14.2f, 0.8f, 0.3f),
             {{"Par Mid Level", -12}, {"Par High Bank Mix", 0.6f}, {"Par High Bank Ripple", 0.5f}, {"Par High Bank Ripple Shape", 3}, {"Par High Bank Stereo", 1},
              {"Sway", 0.4f}, {"Sway to Cutoff", 0}, {"Sway to Morph", 0.8f}}}));
+
+        // ----- Airwindows: 25 built on Chris Johnson's Airwindows filters (Air Z-Plane, Air X-Series, Air Y-Series)
+        // Targets: Low 1-6, Mid 7-12, High 13-18 in the order Cutoff, Reso, Morph, Drive, Level, Pan.
+        // LFO shapes: Sine 1, Triangle 2, Ramp 3, Square 4, S&H 9. LFO sync: 1/16 0, 1/8 1, 1/4 2, 1/2 3, 1 bar 4, 2 bars 5, 4 bars 6, 8 bars 7.
+        // Lane rates: 1/16 2, 1/8 4, 1/4 6, 1/2 7. Cutoffs in semitones from A440: 100 Hz -25.6, 250 Hz -9.8, 500 Hz 2.2, 1 kHz 14.2, 2 kHz 26.2, 4 kHz 38.2, 8 kHz 50.2.
+        const char *AWZ = "Air Z-Plane", *AWX = "Air X-Series", *AWY = "Air Y-Series";
+        auto addAW = [&](const char *name, V vals) { add18(name, "Airwindows", std::move(vals)); };
+        auto open = [&](const char *band) { return F("Ser", band, "Fast SVF", "Lowpass", 82.f, 0, 0); }; // a Series strip left wide open
+        const V serial{{"Routing", 1}}, parallel{{"Routing", 0}};
+        // the lanes not named are switched off (their starting targets are Drive, Cutoff and Level)
+        auto lanesBut = [](const char *keep) { V r; for (const char *b : {"Low", "Mid", "High"}) if (std::strcmp(b, keep)) r.push_back({b[0] == 'L' ? "Seq Low Target" : b[0] == 'M' ? "Seq Mid Target" : "Seq High Target", 0}); return r; };
+
+        // Air Z-Plane (e6400 Ultra style): Resonance drives the clipping, Morph stacks poles
+        addAW("e6400 Ultra Sweep", P2({lanesOff, serial,
+            F("Ser", "Low", AWZ, "ZLowpass", 20.f, 0.3f, 0.66f), open("Mid"), open("High"),
+            {{"LFO 1 Shape", 1}, {"LFO 1 Sync Rate", 5}, {"LFO 1 Target", 1}, {"LFO 1 Amount", 0.5f}}}));
+        addAW("Ultra Three-Band", P2({lanesOff, parallel,
+            F("Par", "Low", AWZ, "ZLowpass", -10.f, 0.3f, 0.66f), F("Par", "Mid", AWZ, "ZBandpass", 14.2f, 0.3f, 0.33f), F("Par", "High", AWZ, "ZHighpass", 38.f, 0.3f, 0.33f),
+            {{"Sway", 0.35f}, {"Sway to Cutoff", 0.6f}, {"Sway Rate", -3.5f}}}));
+        addAW("Shark Teeth", P2({lanesBut("Low"), serial,
+            F("Ser", "Low", AWZ, "ZAcidLowpass", 26.f, 0.5f, 0.4f), open("Mid"), open("High"),
+            {{"Seq Low Target", 3}, {"Seq Low Rate", 2}, {"Seq Low Length", 16}, {"Seq Low Smooth", 0.1f},
+             {"Seq Low Step 1", 0.9f}, {"Seq Low Step 4", -0.4f}, {"Seq Low Step 7", 0.7f}, {"Seq Low Step 9", -0.6f}, {"Seq Low Step 11", 0.8f}, {"Seq Low Step 15", 0.5f}}}));
+        addAW("Acid Meltdown", P2({lanesOff, serial,
+            F("Ser", "Low", AWZ, "ZAcidLowpass", 14.f, 0.7f, 0.6f), open("Mid"), open("High"),
+            {{"LFO 1 Shape", 9}, {"LFO 1 Sync Rate", 1}, {"LFO 1 Target", 3}, {"LFO 1 Amount", 0.5f},
+             {"LFO 2 Shape", 2}, {"LFO 2 Sync Rate", 5}, {"LFO 2 Target", 1}, {"LFO 2 Amount", 0.4f}}}));
+        addAW("Phaser Notch Drift", P2({lanesOff, parallel,
+            F("Par", "Mid", AWZ, "ZNotch", 14.2f, 0.2f, 0.5f), F("Par", "High", AWZ, "ZNotch", 38.f, 0.2f, 0.3f),
+            {{"Sway", 0.6f}, {"Sway to Cutoff", 1}, {"Sway Rate", -3.f}, {"Sway Low Depth", 0}}}));
+        addAW("Ultra Bandpass Talk", P2({lanesBut("Mid"), parallel,
+            F("Par", "Mid", AWZ, "ZBandpass", 14.2f, 0.4f, 0.33f),
+            {{"Seq Mid Target", 7}, {"Seq Mid Rate", 4}, {"Seq Mid Length", 8}, {"Seq Mid Smooth", 0.3f},
+             {"Seq Mid Step 1", 0.6f}, {"Seq Mid Step 3", -0.5f}, {"Seq Mid Step 4", 0.9f}, {"Seq Mid Step 6", -0.3f}, {"Seq Mid Step 7", 0.4f}}}));
+        addAW("Region Smear", P2({lanesOff, parallel,
+            F("Par", "Mid", AWZ, "ZRegion", 26.f, 0.6f, 0.5f), F("Par", "High", AWZ, "ZHighpass", 40.f, 0.2f, 0.33f),
+            {{"Sway", 0.5f}, {"Sway to Cutoff", 0.4f}, {"Sway to Morph", 1}, {"Sway to Reso", 0.5f}, {"Sway Rate", -4.f}}}));
+        addAW("Sampler Pump", P2({lanesOff, serial,
+            F("Ser", "Low", AWZ, "ZLowpass", 8.f, 0.5f, 0.33f), open("Mid"), open("High"),
+            {{"LFO 1 Shape", 3}, {"LFO 1 Sync Rate", 2}, {"LFO 1 Target", 1}, {"LFO 1 Amount", 0.5f}, {"Ser Low Drive Type", 0}, {"Ser Low Drive", 0.2f}, {"Ser Low Level", 3.f}}}));
+
+        // Air X-Series (distorted retro-sampler EQ): Resonance is Gain into the distortion, Morph is Nuke
+        addAW("Retro Sampler EQ", P2({lanesOff, parallel,
+            F("Par", "Low", AWX, "XLowpass", -6.f, 0.3f, 0), F("Par", "Mid", AWX, "XBandpass", 14.2f, 0.2f, 0.1f), F("Par", "High", AWX, "XHighpass", 40.f, 0.2f, 0),
+            {{"Sway", 0.25f}, {"Sway to Cutoff", 0.5f}}}));
+        addAW("Nuked Bass", P2({lanesOff, serial,
+            F("Ser", "Low", AWX, "XLowpass", 6.f, 0.15f, 0.55f), open("Mid"), open("High"),
+            {{"LFO 1 Shape", 1}, {"LFO 1 Sync Rate", 4}, {"LFO 1 Target", 3}, {"LFO 1 Amount", 0.25f}, {"Ser Low Level", 12.f}}}));
+        addAW("Nuke Locks", P2({lanesOff, serial,
+            F("Ser", "Low", AWX, "XLowpass", 18.f, 0.4f, 0), open("Mid"), open("High"),
+            locks("Low", "Morph", {{1, 0.f}, {3, 0.6f}, {5, 0.2f}, {7, 0.9f}, {9, 0.f}, {11, 0.5f}, {13, 0.3f}, {15, 1.f}}),
+            locks("Low", "Cutoff", {{1, cutPos(18.f)}, {7, cutPos(30.f)}, {13, cutPos(12.f)}}),
+            {{"Lock Low Glide", 10}, {"Ser Low Level", 4.f}}}));
+        addAW("Glitch Region", P2({lanesOff, parallel,
+            F("Par", "Mid", AWX, "XRegion", 26.f, 0.6f, 0.5f),
+            {{"Chaperone Influence", 0.7f}, {"Chaperone Grid", 5}, {"Chaperone Chaos", 0.5f}, {"Chaperone Range", 12.f}, {"Chaperone Snap", 1}, {"3rd Wheel", 0.4f}}}));
+        addAW("Mangled Region Drift", P2({lanesOff, parallel,
+            F("Par", "Low", AWX, "XRegion", 0.f, 0.8f, 0.6f), F("Par", "High", AWX, "XRegion", 38.f, 0.5f, 0.3f),
+            {{"Sway", 0.55f}, {"Sway to Cutoff", 0.3f}, {"Sway to Morph", 1}, {"Sway Rate", -3.8f}, {"Par Low Mix", 0.8f}}}));
+        addAW("Crunchy Hats", P2({lanesBut("High"), parallel,
+            F("Par", "High", AWX, "XHighpass", 46.f, 0.6f, 0.4f),
+            {{"Seq High Target", 13}, {"Seq High Rate", 2}, {"Seq High Length", 16}, {"Seq High Smooth", 0.05f},
+             {"Seq High Step 1", 0.5f}, {"Seq High Step 3", -0.3f}, {"Seq High Step 5", 0.7f}, {"Seq High Step 8", -0.5f}, {"Seq High Step 11", 0.6f}, {"Seq High Step 14", -0.2f}}}));
+        addAW("Distorted Notch Sweep", P2({lanesOff, serial,
+            F("Ser", "Low", AWX, "XNotch", 14.f, 0.3f, 0.5f), open("Mid"), open("High"),
+            {{"LFO 1 Shape", 2}, {"LFO 1 Sync Rate", 5}, {"LFO 1 Target", 1}, {"LFO 1 Amount", 0.6f}}}));
+        addAW("Broken Telephone", P2({lanesOff, serial,
+            F("Ser", "Low", AWX, "XBandpass", 20.f, 0.5f, 0.5f), open("Mid"), open("High"),
+            {{"Sway", 0.3f}, {"Sway to Cutoff", 0.4f}, {"Sway to Morph", 0.6f}, {"Ser Low Drive Type", 2}, {"Ser Low Drive", 0.25f}}}));
+
+        // Air Y-Series (soft to nasty): Resonance is Reson8, Morph is ResEdge (about 10% is neutral)
+        addAW("Smooth Resonance", P2({lanesOff, serial,
+            F("Ser", "Low", AWY, "YLowpass", 20.f, 0.5f, 0.1f), open("Mid"), open("High"),
+            {{"Sway", 0.45f}, {"Sway to Cutoff", 1}, {"Sway Rate", -4.f}}}));
+        addAW("Nasty Edge", P2({lanesOff, serial,
+            F("Ser", "Low", AWY, "YLowpass", 14.f, 0.75f, 0.9f), open("Mid"), open("High"),
+            {{"LFO 1 Shape", 1}, {"LFO 1 Sync Rate", 4}, {"LFO 1 Target", 1}, {"LFO 1 Amount", 0.45f},
+             {"LFO 2 Shape", 2}, {"LFO 2 Sync Rate", 6}, {"LFO 2 Target", 3}, {"LFO 2 Amount", 0.4f}}}));
+        addAW("Soft Round Air", P2({lanesOff, parallel,
+            F("Par", "High", AWY, "YHighpass", 34.f, 0.4f, 0.f),
+            {{"Sway", 0.3f}, {"Sway to Cutoff", 0.5f}, {"Sway to Pan", 0.5f}, {"Sway Low Depth", 0}, {"Sway Mid Depth", 0}}}));
+        addAW("Edgy Bandpass Talk", P2({lanesBut("Mid"), parallel,
+            F("Par", "Mid", AWY, "YBandpass", 14.2f, 0.5f, 0.6f),
+            {{"Seq Mid Target", 7}, {"Seq Mid Rate", 4}, {"Seq Mid Length", 8}, {"Seq Mid Smooth", 0.25f},
+             {"Seq Mid Step 1", 0.8f}, {"Seq Mid Step 2", -0.4f}, {"Seq Mid Step 4", 0.5f}, {"Seq Mid Step 5", -0.8f}, {"Seq Mid Step 7", 0.3f}}}));
+        addAW("Notch Breathing", P2({lanesOff, serial,
+            F("Ser", "Low", AWY, "YNotch", 14.2f, 0.4f, 0.2f), open("Mid"), open("High"),
+            {{"Sway", 0.5f}, {"Sway to Cutoff", 1}, {"Sway to Reso", 0.4f}, {"Sway Rate", -3.5f}}}));
+        addAW("Resonant Locks", P2({lanesOff, serial,
+            F("Ser", "Low", AWY, "YLowpass", 8.f, 0.7f, 0.3f), open("Mid"), open("High"),
+            locks("Low", "Cutoff", {{1, cutPos(2.f)}, {3, cutPos(26.f)}, {6, cutPos(-4.f)}, {9, cutPos(32.f)}, {12, cutPos(10.f)}, {15, cutPos(20.f)}}),
+            locks("Low", "Morph", {{3, 0.8f}, {9, 0.95f}, {12, 0.1f}}),
+            {{"Lock Low Glide", 40}}}));
+        addAW("Texture Morph", P2({lanesOff, parallel,
+            F("Par", "Low", AWY, "YLowpass", -8.f, 0.6f, 0.1f), F("Par", "Mid", AWY, "YBandpass", 14.2f, 0.6f, 0.5f), F("Par", "High", AWY, "YHighpass", 36.f, 0.6f, 0.9f),
+            {{"LFO 1 Shape", 1}, {"LFO 1 Sync Rate", 6}, {"LFO 1 Target", 9}, {"LFO 1 Amount", 0.5f},
+             {"LFO 2 Shape", 2}, {"LFO 2 Sync Rate", 7}, {"LFO 2 Target", 15}, {"LFO 2 Amount", -0.4f}}}));
+        addAW("Resonant Escort", P2({lanesOff, parallel,
+            F("Par", "Low", AWY, "YLowpass", 2.f, 0.5f, 0.1f), F("Par", "Mid", AWY, "YLowpass", 20.f, 0.7f, 0.2f), F("Par", "High", AWY, "YHighpass", 32.f, 0.5f, 0.1f),
+            {{"LFO 1 Shape", 1}, {"LFO 1 Sync Rate", 4}, {"LFO 1 Target", 7}, {"LFO 1 Amount", 0.5f},
+             {"Chaperone Influence", 0.7f}, {"Chaperone Grid", 8}, {"Chaperone Snap", 1}, {"Chaperone Range", 12.f}}}));
+
+        // all three families at once
+        addAW("Airwindows Trio", P2({lanesOff, parallel,
+            F("Par", "Low", AWZ, "ZLowpass", -6.f, 0.3f, 0.33f), F("Par", "Mid", AWX, "XBandpass", 14.2f, 0.3f, 0.25f), F("Par", "High", AWY, "YHighpass", 34.f, 0.5f, 0.5f),
+            {{"Sway", 0.35f}, {"Sway to Cutoff", 0.5f}, {"Sway to Morph", 0.6f},
+             {"Mutate", 0.5f}, {"Mutation Trigger", 4}, {"Mutation Low Answer", 1}, {"Mutation High Answer", 2}}}));
         return v;
     }();
     return all;
@@ -2808,7 +2915,7 @@ const clap_plugin_descriptor_t descriptor = {
     "",
     "",
     "",
-    "0.19.0",
+    "0.20.0",
     "Three filters and three drives, in three bands or in series, swaying together; the middle one conducts the other two. Each routing keeps its own settings.",
     features,
 };

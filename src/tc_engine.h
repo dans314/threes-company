@@ -44,6 +44,7 @@
 #include <vector>
 
 #include "sst/filters++.h"
+#include "tc_airz.h"
 
 namespace otiskanno::threescompany
 {
@@ -75,6 +76,7 @@ struct ModelInfo
     std::vector<std::string> labels;
     std::vector<PassKind> kinds; // what the smart edge limiting treats each variant as
     bool zplane{false};          // our own morphing filter (not from sst-filters)
+    int airFamily{-1};           // the Airwindows filters (tc_airz.h): Z, X or Y series, -1 for none
 };
 
 // ---------------------------------------------------------------------------
@@ -228,6 +230,38 @@ inline const std::vector<ModelInfo> &filterCatalogue()
                 z.configs.push_back(sfpp::ModelConfig{}), z.labels.push_back(d[i].name), z.kinds.push_back(PassKind::Open);
             r.push_back(std::move(z));
         }
+        {
+            // The Airwindows filters: Air Z-Plane (e6400 style), Air X-Series and Air Y-Series.
+            // Added after Z-Plane, in this order, so saved strips keep their type.
+            const char *names[airz::numFamilies] = {"Air Z-Plane", "Air X-Series", "Air Y-Series"};
+            for (int fam = 0; fam < airz::numFamilies; ++fam)
+            {
+                ModelInfo a;
+                a.name = names[fam];
+                a.airFamily = fam;
+                for (int i = 0; i < airz::familyCount(fam); ++i)
+                {
+                    int t = airz::familyFirst(fam) + i;
+                    PassKind k = PassKind::Open; // notches and regions are never limited
+                    switch (t)
+                    {
+                    case airz::ZLowpass: case airz::ZAcidLowpass: case airz::XLowpass: case airz::YLowpass:
+                        k = PassKind::LowPass;
+                        break;
+                    case airz::ZHighpass: case airz::XHighpass: case airz::YHighpass:
+                        k = PassKind::HighPass;
+                        break;
+                    case airz::ZBandpass: case airz::XBandpass: case airz::YBandpass:
+                        k = PassKind::BandPass;
+                        break;
+                    default:
+                        break;
+                    }
+                    a.configs.push_back(sfpp::ModelConfig{}), a.labels.push_back(airz::typeName(t)), a.kinds.push_back(k);
+                }
+                r.push_back(std::move(a));
+            }
+        }
         return r;
     }());
     return cat;
@@ -251,7 +285,7 @@ inline bool morphUsed(int modelIndex, int variantIndex)
     if (modelIndex <= 0 || modelIndex >= (int)cat.size() || cat[(size_t)modelIndex].configs.empty())
         return false;
     const auto &mi = cat[(size_t)modelIndex];
-    if (mi.zplane)
+    if (mi.zplane || mi.airFamily >= 0)
         return true;
     int v = std::clamp(variantIndex, 0, (int)mi.configs.size() - 1);
     return sfpp::Filter::coefficientsExtraCount(mi.model, mi.configs[(size_t)v]) > 0;
@@ -1503,6 +1537,9 @@ class Engine
     ZSec zsec[numBands][zStages];
     bool zOn[numBands]{};
     int zDesign[numBands]{};
+    // the Airwindows filters, per strip
+    airz::Filter air[numBands];
+    bool airOn[numBands]{};
     Ramp zComp[numBands];
     bool zSnap[numBands]{true, true, true};
     struct ZBiquad
@@ -1854,12 +1891,23 @@ class Engine
         bs[f].active = false;
         zOn[f] = false;
         zSnap[f] = true;
+        airOn[f] = false;
         for (auto &Z : zsec[f])
             Z.z1[0] = Z.z1[1] = Z.z2[0] = Z.z2[1] = 0.f;
         if (curOn[f] && mi > 0 && mi < (int)cat.size() && cat[(size_t)mi].zplane)
         {
             zOn[f] = true;
             zDesign[f] = std::clamp(curVariant[f], 0, (int)cat[(size_t)mi].configs.size() - 1);
+            bs[f].active = true;
+            mi = 0; // the sst filter itself stays empty
+        }
+        if (curOn[f] && mi > 0 && mi < (int)cat.size() && cat[(size_t)mi].airFamily >= 0)
+        {
+            int vi = std::clamp(curVariant[f], 0, (int)cat[(size_t)mi].configs.size() - 1);
+            airOn[f] = true;
+            air[f].setRate(innerRate);
+            air[f].setType(airz::familyFirst(cat[(size_t)mi].airFamily) + vi);
+            kind[f] = cat[(size_t)mi].kinds[(size_t)vi];
             bs[f].active = true;
             mi = 0; // the sst filter itself stays empty
         }
@@ -2980,6 +3028,14 @@ class Engine
                 filters[i].prepareBlock();
                 continue;
             }
+            if (airOn[i])
+            {
+                air[i].setControls(semiToHz(co[i]), re[i], mv, nInner);
+                filters[i].makeCoefficients(0, co[i], re[i], 0.f);
+                filters[i].copyCoefficientsFromVoiceToVoice(0, 1);
+                filters[i].prepareBlock();
+                continue;
+            }
             if (bs[i].active)
             {
                 const auto &mi = cat[(size_t)curModel[i]];
@@ -3261,6 +3317,11 @@ class Engine
         if (zOn[b])
         {
             zTick(b, l, r);
+            return;
+        }
+        if (airOn[b])
+        {
+            air[b].tick(l, r);
             return;
         }
         float ol, orr;

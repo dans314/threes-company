@@ -31,7 +31,7 @@ It's made for playing, not just for fixing. Pick a preset from **Start**, hover 
 
 ## What's inside
 
-- **Three strips:** classic analog-style filters or Z-Plane morphing filters, each with seven drive types (Warm, Push, Bite, Fuzz, Fold, Rectify and Crush) before or after the filter.
+- **Three strips:** classic analog-style filters, Z-Plane morphing filters, or the Airwindows filters (Air Z-Plane, Air X-Series and Air Y-Series), each with seven drive types (Warm, Push, Bite, Fuzz, Fold, Rectify and Crush) before or after the filter.
 - **Three routings:** **Series** stacks the strips. **Parallel** gives each strip its own band. **Spectral** splits by frequency, or by character (steady tones, hits and air) with **Tonal**.
 - **Movers on every page:** slow **Sway**, the **Chaperone** passing Mid's moves on in time, **Mutation** answering what Mid does, three **LFOs**, a 32-step **Sequencer** with P-locks, an envelope **Follower**, and a 16-slot **Mod** matrix.
 - **Tune:** rings the notes of your key out of whatever comes in, with a tilt EQ and motion that can lock to your song.
@@ -99,4 +99,4 @@ sh build-all-mac.sh    # CLAP, VST3 and AU, then Apple's AU check
 
 ## Licence
 
-Free software under the GPL v3. The filters are the Surge Synth Team's [sst-filters](https://github.com/surge-synthesizer/sst-filters), and the filter core started from [Two Filters](https://github.com/baconpaul/two-filters) by Paul Walker (BaconPaul), both GPL v3. Thank you to both.
+Free software under the GPL v3. The filters are the Surge Synth Team's [sst-filters](https://github.com/surge-synthesizer/sst-filters), and the filter core started from [Two Filters](https://github.com/baconpaul/two-filters) by Paul Walker (BaconPaul), both GPL v3. The Air Z-Plane, Air X-Series and Air Y-Series filters are Chris Johnson's [Airwindows](https://github.com/airwindows/airwindows) Z, X and Y filters (ZLowpass, ZHighpass, ZBandpass, ZNotch, ZRegion, ZAcidLowpass; XLowpass, XHighpass, XBandpass, XNotch, XRegion; YLowpass, YHighpass, YBandpass, YNotch), used under the MIT licence, with the Y series' encode/decode curve by torridgristle (MIT); the notice is in `src/tc_airz.h`. Thank you to all of them.

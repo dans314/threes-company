@@ -1691,6 +1691,100 @@ static void testZPlane()
               a551, a278, m334, m551, b551, b278, up));
 }
 
+// Air Z-Plane: each Airwindows Z type passes and stops what it should, through the engine;
+// Morph stacks more poles, and nothing changes with oversampling
+static void testAirZPlane()
+{
+    int az = findModel("Air Z-Plane");
+    auto level = [&](int type, double hz, float cutoffHz, float morph, int os) {
+        Settings s;
+        s.oversample = os, s.smartEdges = false, s.limiter = false;
+        s.routing = Series;
+        auto &M = s.mode[Series];
+        for (int b = 0; b < 3; ++b)
+            M.band[b].model = 0;
+        M.band[Low].model = az, M.band[Low].variant = type;
+        M.band[Low].cutoff = hzToSemi(cutoffHz), M.band[Low].resonance = 0.f, M.band[Low].morph = morph;
+        Engine e;
+        e.setSampleRate(SR);
+        double sum = 0, ph = 0;
+        long n = 0;
+        runPlaying(e, s, 0.6, 0.0, 120, [&](int k, auto &l, auto &) {
+            if (k > 150)
+                for (float v : l)
+                    sum += v * v, ++n;
+        }, [&](long) { ph += 2 * 3.14159265358979 * hz / SR; return 0.1f * (float)std::sin(ph); });
+        return 10 * std::log10(sum / std::max(1L, n) + 1e-20);
+    };
+    const auto &mi = filterCatalogue()[(size_t)az];
+    bool named = az > 0 && mi.labels.size() == (size_t)airz::familyCount(airz::FamZ) && mi.labels[0] == "ZLowpass" && mi.labels[5] == "ZAcidLowpass";
+    double ref = level(0, 200, 20000, 0, 1); // the input, as near as a lowpass at the top lets through
+    double lpPass = level(airz::ZLowpass, 200, 2000, 0, 1) - ref, lpStop = level(airz::ZLowpass, 8000, 1000, 0, 1) - ref;
+    double lpStop4 = level(airz::ZLowpass, 8000, 1000, 1, 1) - ref;
+    double hpPass = level(airz::ZHighpass, 5000, 500, 0, 1) - ref, hpStop = level(airz::ZHighpass, 100, 2000, 0, 1) - ref;
+    double bpPeak = level(airz::ZBandpass, 1000, 1000, 0, 1) - ref, bpSide = level(airz::ZBandpass, 100, 1000, 1, 1) - ref;
+    double ntHole = level(airz::ZNotch, 1000, 1000, 0, 1) - ref, ntPass = level(airz::ZNotch, 200, 2000, 0, 1) - ref;
+    double rgPeak = level(airz::ZRegion, 1000, 1000, 0.5f, 1) - ref, rgSide = level(airz::ZRegion, 8000, 1000, 0.5f, 1) - ref;
+    double acPass = level(airz::ZAcidLowpass, 200, 4000, 0, 1) - ref, acStop = level(airz::ZAcidLowpass, 8000, 500, 0, 1) - ref;
+    double os0 = level(airz::ZLowpass, 1500, 1000, 0.5f, 0), os2 = level(airz::ZLowpass, 1500, 1000, 0.5f, 2);
+    bool ok = named && std::isfinite(ref) && std::fabs(lpPass) < 1.5 && lpStop < -24 && lpStop4 < lpStop - 30 &&
+              std::fabs(hpPass) < 2 && hpStop < -20 && std::fabs(bpPeak) < 2 && bpSide < -25 && ntHole < -30 &&
+              std::fabs(ntPass) < 1.5 && std::fabs(rgPeak) < 3 && rgSide < -20 && std::fabs(acPass) < 2 && acStop < -12 &&
+              std::fabs(os0 - os2) < 1;
+    check(ok, "Air Z-Plane types",
+          fmt("Low: pass %.1f, stop %.1f, 4 poles %.1f; High: pass %.1f, stop %.1f; Band: peak %.1f, side %.1f; Notch: hole %.1f, pass %.1f; "
+              "Region: peak %.1f, side %.1f; Acid: pass %.1f, stop %.1f dB; oversampling Off vs 4x %.1f dB",
+              lpPass, lpStop, lpStop4, hpPass, hpStop, bpPeak, bpSide, ntHole, ntPass, rgPeak, rgSide, acPass, acStop, os0 - os2));
+}
+
+// Air X-Series and Air Y-Series: each type passes and stops what it should, through the engine
+static void testAirXY()
+{
+    int ax = findModel("Air X-Series"), ay = findModel("Air Y-Series");
+    auto level = [&](int model, int variant, double hz, float cutoffHz, float reso, float morph) {
+        Settings s;
+        s.oversample = 1, s.smartEdges = false, s.limiter = false;
+        s.routing = Series;
+        auto &M = s.mode[Series];
+        for (int b = 0; b < 3; ++b)
+            M.band[b].model = 0;
+        M.band[Low].model = model, M.band[Low].variant = variant;
+        M.band[Low].cutoff = hzToSemi(cutoffHz), M.band[Low].resonance = reso, M.band[Low].morph = morph;
+        Engine e;
+        e.setSampleRate(SR);
+        double sum = 0, ph = 0;
+        long n = 0;
+        runPlaying(e, s, 0.6, 0.0, 120, [&](int k, auto &l, auto &) {
+            if (k > 150)
+                for (float v : l)
+                    sum += v * v, ++n;
+        }, [&](long) { ph += 2 * 3.14159265358979 * hz / SR; return 0.05f * (float)std::sin(ph); });
+        return 10 * std::log10(sum / std::max(1L, n) + 1e-20);
+    };
+    const auto &cx = filterCatalogue()[(size_t)ax], &cy = filterCatalogue()[(size_t)ay];
+    bool named = ax > 0 && ay > 0 && cx.labels.size() == 5 && cx.labels[0] == "XLowpass" && cx.labels[4] == "XRegion" &&
+                 cy.labels.size() == 4 && cy.labels[0] == "YLowpass" && cy.labels[3] == "YNotch";
+    double ref = level(ay, 0, 200, 20000, 0, 0.1f); // YLowpass wide open, ResEdge neutral: the input
+    double xlP = level(ax, 0, 200, 2000, 0, 0) - ref, xlS = level(ax, 0, 8000, 1000, 0, 0) - ref;
+    double xhP = level(ax, 1, 6000, 500, 0, 0) - ref, xhS = level(ax, 1, 100, 2000, 0, 0) - ref;
+    double xbP = level(ax, 2, 1000, 1000, 0, 0) - ref, xbS = level(ax, 2, 100, 1000, 0, 0.5f) - ref;
+    double xnH = level(ax, 3, 1000, 1000, 0, 0) - ref, xnP = level(ax, 3, 150, 2000, 0, 0) - ref;
+    double xrP = level(ax, 4, 1000, 1000, 0, 0.5f) - ref, xrS = level(ax, 4, 8000, 1000, 0, 0.5f) - ref;
+    double ylP = level(ay, 0, 200, 2000, 0, 0.1f) - ref, ylS = level(ay, 0, 8000, 1000, 0, 0.1f) - ref;
+    double ylR = level(ay, 0, 1000, 1000, 0.8f, 0.1f) - ref; // Reson8 makes a peak at the cutoff
+    double yhP = level(ay, 1, 6000, 500, 0, 0.1f) - ref, yhS = level(ay, 1, 100, 2000, 0, 0.1f) - ref;
+    double ybP = level(ay, 2, 1000, 1000, 0.5f, 0.1f) - ref, ybS = level(ay, 2, 100, 1000, 0.5f, 0.1f) - ref;
+    double ynH = level(ay, 3, 1000, 1000, 0.5f, 0.1f) - ref, ynP = level(ay, 3, 150, 2000, 0.5f, 0.1f) - ref;
+    bool ok = named && std::isfinite(ref) && std::fabs(xlP) < 1.5 && xlS < -24 && std::fabs(xhP) < 1.5 && xhS < -20 &&
+              std::fabs(xbP) < 1.5 && xbS < -20 && xnH < -30 && std::fabs(xnP) < 1.5 && std::fabs(xrP) < 3 && xrS < -20 &&
+              std::fabs(ylP) < 1.5 && ylS < -20 && ylR > 6 && std::fabs(yhP) < 1.5 && yhS < -20 && std::fabs(ybP) < 1.5 &&
+              ybS < -20 && ynH < -30 && std::fabs(ynP) < 1.5;
+    check(ok, "Air X-Series and Y-Series types",
+          fmt("X: Low %.1f/%.1f, High %.1f/%.1f, Band %.1f/%.1f, Notch %.1f/%.1f, Region %.1f/%.1f; "
+              "Y: Low %.1f/%.1f (Reson8 peak %+.1f), High %.1f/%.1f, Band %.1f/%.1f, Notch %.1f/%.1f dB (pass/stop)",
+              xlP, xlS, xhP, xhS, xbP, xbS, xnP, xnH, xrP, xrS, ylP, ylS, ylR, yhP, yhS, ybP, ybS, ynP, ynH));
+}
+
 // Mod Depth (master and per strip) and a strip's own Mix
 static void testDepthAndMix()
 {
@@ -2244,6 +2338,8 @@ int main(int argc, char **argv)
     testBank();
     testConductorPlus();
     testZPlane();
+    testAirZPlane();
+    testAirXY();
     testDepthAndMix();
     testStepLfo();
     testAnalyser();

@@ -243,7 +243,7 @@ nav .navr{display:flex;align-items:center;gap:14px;padding-bottom:3px}
   <div class="strips" id="strips"></div>
   <nav><div class="tabs" id="tabs"></div><div class="navr" id="navr"></div></nav>
   <div id="pages"></div>
-  <footer><b>Three’s Company</b><span class="fh">v0.19</span><button type="button" class="fbtn" id="setBtn">⚙ Settings</button><span class="fh" style="flex:1;text-align:center">Double-click a knob to reset it · Shift-drag for fine control · ⧉ copies and pastes a panel · the dice are Random</span><span class="fh">Size</span><span class="zoom" id="zoomBox"></span><span class="fh">Limiter</span><span class="lim" id="limTxt">0.0 dB</span></footer>
+  <footer><b>Three’s Company</b><span class="fh">v0.20</span><button type="button" class="fbtn" id="setBtn">⚙ Settings</button><span class="fh" style="flex:1;text-align:center">Double-click a knob to reset it · Shift-drag for fine control · ⧉ copies and pastes a panel · the dice are Random</span><span class="fh">Size</span><span class="zoom" id="zoomBox"></span><span class="fh">Limiter</span><span class="lim" id="limTxt">0.0 dB</span></footer>
 </div>
 <div id="menu" class="pop" role="dialog" aria-label="Choose a filter"><div class="row" style="align-items:stretch;gap:0"><div class="list" id="mlist" role="listbox"></div><div class="desc" id="mdesc"></div></div></div>
 <div id="pop" class="pop" role="listbox"></div>
@@ -756,6 +756,9 @@ function bipBar(p, pre) { // a horizontal -100..+100 bar; a mod slot's also show
 const FDESC = {
   'None': ['Bypass', 'No filter: the band passes untouched, so only the drive and level work on it.'],
   'Z-Plane': ['Morphing · vocal · animated', 'Built like the E-mu Morpheus filter: a resonant low-pass and six parametric sections, stored as two whole filters (frames). Morph moves the poles and zeros from one frame to the other, so peaks glide rather than fade. Cutoff works as Frequency Tracking (slides the whole shape; designed at 1 kHz), Resonance as Transform 2 (the size and sharpness of the peaks). Unlike the Morpheus, all three move in real time.'],
+  'Air Z-Plane': ['E-mu e6400 · gritty · Airwindows', 'The Airwindows Z filters by Chris Johnson, made to sound and act like the E-mu e6400 Ultra: ZLowpass, ZHighpass, ZBandpass, ZNotch (the e6400 phaser), ZRegion and ZAcidLowpass. Plain, fixed shapes with the e6400’s clipping stages between them. Cutoff sets the frequency, Resonance drives the input into the clipping (on ZRegion it widens the region instead), and Morph stacks one to four poles (ZRegion: one to five; ZAcidLowpass: Meltdown).'],
+  'Air X-Series': ['Distorted · retro · Airwindows', 'The Airwindows X filters by Chris Johnson: distorted digital EQ inspired by retro sampler DSP. XLowpass, XHighpass, XBandpass, XNotch (the least glitchy) and XRegion (staggered bandpasses, for extreme sound-mangling). Cutoff sets the frequency, Resonance is Gain, driving the input into the distortion (on XRegion it widens the region instead), and Morph is Nuke: one to five distorted stages, getting more broken as it goes.'],
+  'Air Y-Series': ['Smooth to nasty · resonant · Airwindows', 'The Airwindows Y filters by Chris Johnson: soft and smooth to nasty, edgy, texture-varying filtering. YLowpass, YHighpass, YBandpass and YNotch. Cutoff sets the frequency, Resonance is Reson8 (a real resonant peak), and Morph is ResEdge, which changes the texture of the resonance from soft and round (low) through neutral (about 10%) to hard and nasty (high).'],
   'Vember Classic': ['Clean · versatile', 'Surge’s original multimode. Clean and exact at low resonance, gets thick and gritty when pushed. A safe all-rounder with the most types to pick from.'],
   'Vember Ladder': ['Warm · round', 'A four-pole ladder in the classic synth mould. Warm and round; turning up resonance thins the bass the way old ladders do.'],
   'OB-Xd 2-pole': ['Open · vocal', 'Gentle 12 dB slope modelled on Oberheim’s two-pole sound. Open and airy, with a soft, vocal resonance. Good for pads and sweeps that should not get thin.'],
@@ -786,12 +789,13 @@ const DDESC = {
 };
 
 // ---------------------------------------------------------------------------
-// what a filter variant looks like: a response from its name (lowpass, notch, shelf, comb ...)
+// what a filter variant looks like: a response from its nam)TCHTML"
+R"TCHTML(e (lowpass, notch, shelf, comb ...)
 // ---------------------------------------------------------------------------
 const VTYPES = ['Low Shelf', 'High Shelf', 'Notch+LP', 'Phaser+LP', 'Lowpass', 'Highpass', 'Bandpass', 'Notch', 'Peak', 'Allpass', 'Bell', 'Phaser'];
 // the response family a variant belongs to, and the rest of its name
 function vSplit(model, name) {
-  if (model === 'Z-Plane') return [name, ''];
+  if (model === 'Z-Plane' || model.startsWith('Air ')) return [name, ''];
   for (const t of VTYPES) if (name === t || name.startsWith(t + ' ')) return [t, name.slice(t.length).trim()];
   if (model === 'Tri-pole') { const i = name.indexOf(' '); return [name.slice(0, i), name.slice(i + 1)]; }
   if (model === 'Comb') { const i = name.indexOf(','); return i > 0 ? [name.slice(0, i).replace('Postive', 'Positive'), name.slice(i + 1).trim()] : [name, '']; }
@@ -804,12 +808,12 @@ function respFn(model, name, q) {
   const res2 = (w) => Math.sqrt((1 - w * w) ** 2 + (w / q) ** 2);
   // a resonant two-pole section, then plain poles for the rest of the slope
   const slope = (first, one, two) => (w) => { if (order <= 1) return one(w); let a = first(w); for (let r = order - 2; r > 0; r -= 2) a *= r === 1 ? one(w) : two(w); return a; };
-)TCHTML"
-R"TCHTML(  const lp = slope((w) => 1 / res2(w), (w) => 1 / Math.sqrt(1 + w * w), (w) => 1 / (1 + w * w));
+  const lp = slope((w) => 1 / res2(w), (w) => 1 / Math.sqrt(1 + w * w), (w) => 1 / (1 + w * w));
   const hp = slope((w) => w * w / res2(w), (w) => w / Math.sqrt(1 + w * w), (w) => w * w / (1 + w * w));
   const notch = (w) => Math.abs(1 - w * w) / Math.sqrt((1 - w * w) ** 2 + (w / Math.max(0.35, q * 0.6)) ** 2);
   if (model === 'None' || !name) return () => 1;
   if (model === 'Z-Plane') { const zf = zMag(name, 0.5, 0, 0.5); return (w) => zf(w * 1000); }
+  if (model.startsWith('Air ')) return airMag(name, 0.33, 0.3);
   if (model === 'Sample & Hold') return (w) => Math.max(0.05, Math.abs(Math.sin(Math.PI * w / 2) / (Math.PI * w / 2 + 1e-9)));
   if (model === 'Comb') {
     const g = Math.min(0.9, 0.4 + q * 0.08), neg = /negative/i.test(type) ? Math.PI : 0, bip = /bipolar/i.test(type);
@@ -832,6 +836,42 @@ R"TCHTML(  const lp = slope((w) => 1 / res2(w), (w) => 1 / Math.sqrt(1 + w * w),
     case 'High Shelf': return (w) => 1 + w * w / (1 + w * w);
     case 'Bell': return (w) => 1 + (w / q) / res2(w) * 0.9;
     default: return lp;
+  }
+}
+// the Airwindows shapes (see tc_airz.h). w = f / cutoff. Z and X: Morph stacks the stages (Poles, Nuke);
+// Y: Resonance is the Q (Reson8), and Morph (ResEdge) changes the texture, not the shape
+const AIRZ_RANGE = { ZLowpass: [71.4, 19001], ZHighpass: [33.5, 9533], ZBandpass: [34.8, 14335], ZNotch: [43.9, 4744], ZRegion: [4, 20000], ZAcidLowpass: [0.1, 4410],
+  XLowpass: [44.1, 20000], XHighpass: [44.1, 20000], XBandpass: [2.2, 20000], XNotch: [13.2, 20000], XRegion: [4, 20000],
+  YLowpass: [15, 20000], YHighpass: [15, 20000], YBandpass: [15, 20000], YNotch: [15, 20000] };
+const airCut = (name, hz) => { const r = AIRZ_RANGE[name] || [20, 20000]; return Math.min(r[1], Math.max(r[0], hz)); };
+function airMag(name, morph, reso) {
+  const den = (w, q) => Math.sqrt((1 - w * w) ** 2 + (w / q) ** 2);
+  const bp = (w, q) => (w / q) / den(w, q), n = 1 + 3 * morph;
+  switch (name) {
+    case 'ZHighpass': return (w) => Math.pow(w * w / den(w, 1.0), n);
+    case 'ZBandpass': return (w) => Math.pow(bp(w, 0.314), n);
+    case 'ZNotch': return (w) => Math.pow(Math.abs(1 - w * w) / den(w, 0.618), n);
+    case 'XLowpass': case 'XHighpass': case 'XBandpass': case 'XNotch': {
+      const k = 1 + 4 * morph, q = 0.7071;
+      if (name === 'XHighpass') return (w) => Math.pow(w * w / den(w, q), k);
+      if (name === 'XBandpass') return (w) => Math.pow(bp(w, q), k);
+      if (name === 'XNotch') return (w) => Math.pow(Math.abs(1 - w * w) / den(w, q), k);
+      return (w) => Math.pow(1 / den(w, q), k);
+    }
+    case 'YLowpass': case 'YHighpass': case 'YBandpass': case 'YNotch': {
+      const C = name === 'YNotch' ? 0.1 + 0.9 * reso : reso, q = name === 'YNotch' ? C * C * 15 + 0.0001 : C * C * 15 + 0.5571;
+      if (name === 'YHighpass') return (w) => w * w / den(w, q);
+      if (name === 'YBandpass') return (w) => bp(w, q);
+      if (name === 'YNotch') return (w) => Math.abs(1 - w * w) / den(w, q);
+      return (w) => 1 / den(w, q);
+    }
+    case 'ZRegion': case 'XRegion': {
+      // up to five bandpasses walking from First down to Last; Resonance sets how far Last sits below
+      const m = 4 * morph, fk = [0, 1, 2, 3, 4].map((k) => Math.pow(1 - 0.6 * reso * k / 4, 3));
+      return (w) => { let a = bp(w, 0.7071); for (let k = 1; k < 5; ++k) a *= Math.pow(bp(w / fk[k], 0.7071), Math.min(1, Math.max(0, m - (k - 1)))); return a; };
+    }
+    case 'ZAcidLowpass': return (w) => 1 / Math.sqrt(1 + Math.pow(w, 2.4));
+    default: return (w) => Math.pow(1 / den(w, 0.7071), n);
   }
 }
 // Z-Plane: the six sections between the two frames, as the engine builds them
@@ -909,7 +949,8 @@ function dice(colourFn, title, fn) {
 const DICE = [];
 let toastT = 0;
 function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => { el.style.opacity = 0; }, 1600); }
-const LIGHT_MODELS = ['Vember Classic', 'Vember Ladder', 'OB-Xd 2-pole', 'OB-Xd 4-pole', 'OB-Xd Xpander', 'K35', 'Diode Ladder', 'Cutoff Warp', 'Resonance Warp', 'Fast SVF', 'Comb', 'Sample & Hold', 'Cascade SVF'];
+const LIGHT_MODELS = ['Vember Classic', 'Vember Ladder', 'OB-Xd 2-pole', 'OB-Xd )TCHTML"
+R"TCHTML(4-pole', 'OB-Xd Xpander', 'K35', 'Diode Ladder', 'Cutoff Warp', 'Resonance Warp', 'Fast SVF', 'Comb', 'Sample & Hold', 'Cascade SVF'];
 function randomStrip(pre) {
   const ch = [], fp = P(pre + 'Filter Type'), vp = P(pre + 'Filter Variant');
   if (chance(0.4)) { const want = pick(LIGHT_MODELS), i = S.models.findIndex((m) => m.name === want); if (i > 0) { ch.push([fp, i]); const n = S.models[i].variants.length; ch.push([vp, n > 1 ? Math.floor(Math.random() * n) / (n - 1) : 0]); } }
@@ -963,8 +1004,7 @@ function randomLocks(b) {
   setMany(ch); refreshLockCells();
 }
 function randomMutation() {
-  const ch = [[P('Mutation Trigger'), Math.floor(Math.random() * 5)], [P('Mut)TCHTML"
-R"TCHTML(ation Sensitivity'), rnd(0.3, 0.8)], [P('Mutation Hold-off'), Math.floor(Math.random() * 7)]];
+  const ch = [[P('Mutation Trigger'), Math.floor(Math.random() * 5)], [P('Mutation Sensitivity'), rnd(0.3, 0.8)], [P('Mutation Hold-off'), Math.floor(Math.random() * 7)]];
   const modes = pick([[1, 2], [2, 1], [1, 1], [2, 2], [1, 0], [0, 2]]);
   ['Low', 'High'].forEach((b, i) => {
     const pre = 'Mutation ' + b + ' ';
@@ -1054,7 +1094,8 @@ const CLIPS = {
   lock: { name: (k) => BAND[k] + ' locks', pre: (k) => 'Lock ' + BAND[k] + ' ', n: 3, fields: ['Cutoff', 'Reso', 'Morph', 'Drive', 'Level', 'Pan'].flatMap((n) => Array.from({ length: 32 }, (_, i) => n + ' ' + (i + 1))).concat(['Glide', 'Length', 'Rate']) },
   timing: { name: (k) => BAND[k] + ' timing', pre: (k) => 'Seq ' + BAND[k] + ' ', n: 3, fields: ['Timing', 'Rate', 'Speed', 'Swing', 'Offset', 'Smooth', 'Sway'] },
   lfo: { name: (k) => 'LFO ' + (k + 1), pre: (k) => 'LFO ' + (k + 1) + ' ', n: 3, fields: ['Shape', 'Timing', 'Sync Rate', 'Rate', 'Phase', 'Smooth', 'Output', 'Sway', 'Target', 'Amount', 'Steps', 'Glide', 'Scale'].concat(STEPS16) },
-  bank: { name: (k) => BAND[k] + ' bank', pre: (k) => mode() + ' ' + BAND[k] + ' Bank ', n: 3, fields: ['Mix', 'Width', 'Ripple', 'Ripple Rate', 'Ripple Waves', 'Ripple Timing', 'Ripple Sync', 'Ripple Shape', 'Ripple Both Ways', 'Stereo', 'Band 1', 'Band 2', 'Band 3', 'Band 4', 'Band 5', 'Band 6', 'Band 7', 'Band 8'] },
+  bank: { name: (k) => BAND[k] + ' bank', pre: (k) => mode() + ' ' + BAND[k] + ' Bank ', n: 3, fields: ['Mix', 'Width', 'Ripple', 'Ripple Rate', 'Ripple Waves', 'Ripple Timing', 'Ripple Sync', 'Ripple Shape', 'Ripple Both Ways', 'Stereo', 'Band 1)TCHTML"
+R"TCHTML(', 'Band 2', 'Band 3', 'Band 4', 'Band 5', 'Band 6', 'Band 7', 'Band 8'] },
   slot: { name: (k) => 'slot ' + (k + 1), pre: (k) => 'Mod ' + (k + 1) + ' ', n: 16, fields: ['Source', 'Target', 'Amount', 'Swing'] },
   mut: { name: (k) => ['Low', 'High'][k] + ' answer', pre: (k) => 'Mutation ' + ['Low', 'High'][k] + ' ', n: 2, fields: ['Answer', 'Moves', 'Amount', 'Chance', 'Delay'] }
 };
@@ -1106,8 +1147,7 @@ function clipButton(kind, k, light) {
       if (v === 'swap') { swapBands(k, 2 - k); return; }
       if (v === 'copy') copyPanel(kind, k);
       else if (v === 'paste') pastePanel(kind, k);
-)TCHTML"
-R"TCHTML(      else { const keep = S.clip; copyPanel(kind, k); for (let j = 0; j < c.n; ++j) if (j !== k && (v === 'all' || v === 'to' + j)) pastePanel(kind, j); S.clip = keep; toast('Copied ' + c.name(k) + (v === 'all' ? ' to the other two' : ' to ' + c.name(+v.slice(2)))); }
+      else { const keep = S.clip; copyPanel(kind, k); for (let j = 0; j < c.n; ++j) if (j !== k && (v === 'all' || v === 'to' + j)) pastePanel(kind, j); S.clip = keep; toast('Copied ' + c.name(k) + (v === 'all' ? ' to the other two' : ' to ' + c.name(+v.slice(2)))); }
     }, { width: 200 });
   };
   if (light) b.style.color = 'inherit';
@@ -1201,7 +1241,8 @@ S.presetName = 'Init';
 function buildPresets() {
   const box = document.getElementById('presetBox'); box.innerHTML = '';
   const list = S.presets || [];
-  const t = h('span', { class: 't' }), b = h('button', { type: 'button', class: 'dd pdd', 'aria-haspopup': 'listbox', 'aria-label': 'Presets' }, h('span', { class: 'lbl', text: 'Preset', style: 'font-size:9.5px' }), t, h('span', { class: 'car', text: '▾' }));
+  const t = h('span', { class: 't' }))TCHTML"
+R"TCHTML(, b = h('button', { type: 'button', class: 'dd pdd', 'aria-haspopup': 'listbox', 'aria-label': 'Presets' }, h('span', { class: 'lbl', text: 'Preset', style: 'font-size:9.5px' }), t, h('span', { class: 'car', text: '▾' }));
   t.textContent = S.presetName;
   const groups = {}; list.forEach(([n, g], i) => { (groups[g] = groups[g] || []).push({ label: n, value: i }); });
   b.onclick = (e) => {
@@ -1241,8 +1282,7 @@ function refreshSpecBox() { if (S.specBox) S.specBox.style.display = spectralOn(
 function spectralOn() { return mode() === 'Par' && P('Parallel Split') && P('Parallel Split').v >= 0.5; }
 function tonalOn() { return spectralOn() && P('Spectral Split By').v >= 0.5; }
 
-function stripSub(b) { return )TCHTML"
-R"TCHTML(tonalOn() ? ['tones', 'hits', 'air'][b] : ''; }
+function stripSub(b) { return tonalOn() ? ['tones', 'hits', 'air'][b] : ''; }
 function buildStrips() {
   const box = document.getElementById('strips'); box.innerHTML = ''; KNOBS.length = 0;
   for (let i = DICE.length - 1; i >= 0; --i) if (DICE[i].closest && DICE[i].closest('#strips')) DICE.splice(i, 1);
@@ -1331,7 +1371,8 @@ function openMenu(fp, vp, anchor, b) {
       h('div', { class: 'hint', style: 'margin-top:auto', text: 'Hover a filter to read about it; click to choose it.' }));
   };
   S.models.forEach((m, i) => {
-    const it = h('button', { type: 'button', role: 'option', class: Math.round(fp.v) === i ? 'sel' : '' }, h('span', { text: m.name }), h('span', { text: HEAVY[m.name] ? 'heavy' : '', style: 'font-size:10px;opacity:.7' }));
+    const it = h('button', { type: 'button', r)TCHTML"
+R"TCHTML(ole: 'option', class: Math.round(fp.v) === i ? 'sel' : '' }, h('span', { text: m.name }), h('span', { text: HEAVY[m.name] ? 'heavy' : '', style: 'font-size:10px;opacity:.7' }));
     it.onmouseenter = it.onfocus = () => { list.querySelectorAll('.hov').forEach((x) => x.classList.remove('hov')); it.classList.add('hov'); show(m.name); };
     it.onclick = () => {
       const ch = [[fp, i], [vp, 0]];
@@ -1386,8 +1427,7 @@ function pageSway() {
   const sync = P('Sway Sync');
   const rateBox = h('div');
   const fillRate = () => { rateBox.innerHTML = ''; rateBox.append(sync.v >= 0.5 ? labelled('Length', sel(P('Sway Sync Length'), 92)) : knob(P('Sway Rate'), 'Rate', ink)); };
-  const tr = h('canvas', { style: 'flex:1;width:100)TCHTML"
-R"TCHTML(%;min-height:64px;background:var(--graph);border-radius:8px;border:1px solid var(--line)', 'aria-label': 'The three strips’ sway, as it moves' }); S.traceCanvas = tr; S.trace = [[], [], []];
+  const tr = h('canvas', { style: 'flex:1;width:100%;min-height:64px;background:var(--graph);border-radius:8px;border:1px solid var(--line)', 'aria-label': 'The three strips’ sway, as it moves' }); S.traceCanvas = tr; S.trace = [[], [], []];
   // each band's own feel: Main (follows the main Motion), Smooth or Stepped; its speed against the main rate; its share; its slew
   const bandRow = (b) => {
     const pre = 'Sway ' + BAND[b] + ' ', col = () => bandColour(b), mo = P(pre + 'Motion'), slew = h('div', { class: 'hk' }, knob(P(pre + 'Slew'), 'Slew', col, 22));
@@ -1447,7 +1487,8 @@ function pageConductor() {
       labelled('Bars', sel(P('Chaperone Bars'), 104)), labelled('Snap', sel(P('Chaperone Snap'), 104)), labelled('Seed', stepper(P('Chaperone Seed')))),
     h('div', { class: 'row', style: 'gap:12px;align-items:flex-end' }, knob(P('Chaperone Chaos'), 'Chaos', midLine, 38), knob(P('Chaperone Range'), 'Range', midLine, 38), knob(P('Chaperone Chance'), 'Chance', midLine, 38),
       knob(P('Chaperone Bursts'), 'Bursts', midLine, 38)),
-    h('div', { class: 'hint', style: 'font-size:11px', text: 'Grid: pass Mid’s movement on in steps. Every: clock dividers (3 against 4 makes a polyrhythm). Chaos: random jumps instead of Mid’s own move. Bars: Elektron-style 1:4 = the first of every 4 bars. Bursts: a beat of fast jumps now and then.' }));
+    h('div', { class: 'hint', style: 'font-size:11px', text: 'Grid: pass Mid’s movement on in steps. Every: clock dividers (3 against 4 makes a polyrhythm). Chaos: random jumps)TCHTML"
+R"TCHTML( instead of Mid’s own move. Bars: Elektron-style 1:4 = the first of every 4 bars. Bursts: a beat of fast jumps now and then.' }));
   const jack = card('width:300px;flex:none', h('div', { class: 'row' }, h('h2', { class: 'hd', text: '3RD WHEEL', style: 'margin:0;font-size:15px' }), h('span', { class: 'hint', text: 'throws the plan off' })),
     h('div', { class: 'row', style: 'gap:10px;align-items:flex-end' }, knob(P('3rd Wheel'), '3rd Wheel', midLine, 46), knob(P('3rd Wheel Mischief'), 'Mischief', midLine, 46), h('div', { class: 'col', style: 'gap:6px' }, labelled('Pair', sel(P('3rd Wheel Pair'), 124)), labelled('Moves', sel(P('3rd Wheel Moves'), 124)))),
     h('div', { class: 'hint', style: 'font-size:11px', text: '3rd Wheel: when one strip moves, the other moves the same amount the opposite way (Low up 20, High down 20). Mischief: now and then it knocks a strip slightly out of whack, then lets it settle. “Moves” picks which knob it moves.' }));
@@ -1484,8 +1525,7 @@ function drawChaperone(u) {
     // the dot moves up or down with what it is given
     const dy = -Math.max(-1, Math.min(1, st / 12)) * H * 0.22;
     g.fillStyle = b === 2 ? '#FFC107' : bandColour(0); g.beginPath(); g.arc(x, y + dy, 9 + 4 * pulse, 0, Math.PI * 2); g.fill();
- )TCHTML"
-R"TCHTML(   if (S.dark && b === 0) { g.strokeStyle = '#E9E6DF'; g.lineWidth = 1.5; g.stroke(); }
+    if (S.dark && b === 0) { g.strokeStyle = '#E9E6DF'; g.lineWidth = 1.5; g.stroke(); }
     g.fillStyle = T.ink; g.font = '700 11px -apple-system, sans-serif'; g.textAlign = 'center';
     g.fillText((st >= 0 ? '+' : '') + st.toFixed(1) + ' st', x, Math.min(H - 3, y + dy + 24));
   });
@@ -1571,7 +1611,8 @@ function pageBank() {
       h('div', { class: 'row', style: 'justify-content:space-between;align-items:flex-end' }, knob(P(pre + 'Mix'), 'Mix', col, 36), knob(P(pre + 'Width'), 'Width', col, 30), knob(P(pre + 'Ripple'), 'Ripple', col, 30),
         knob(P(pre + 'Ripple Waves'), 'Waves', col, 30), knob(P(pre + 'Stereo'), 'Stereo', col, 30)));
   });
-  return h('div', { style: 'flex-direction:column;gap:8px' }, h('div', { class: 'row' }, h('h2', { class: 'hd', text: 'BANK', style: 'margin:0;font-size:15px' }), h('div', { class: 'sp' }),
+  return h('div', { style: 'flex-di)TCHTML"
+R"TCHTML(rection:column;gap:8px' }, h('div', { class: 'row' }, h('h2', { class: 'hd', text: 'BANK', style: 'margin:0;font-size:15px' }), h('div', { class: 'sp' }),
     h('span', { class: 'hint', text: 'Eight narrow bands per strip, Slink-style: drag up to boost a band, down to cut it (double-click resets). Ripple pushes each band one way from where you set it (↑ or ↓); Shift-click a band to let it swing both ways (↕); Shift-drag moves a band finely. Stereo splits alternate bands left and right.' })),
     h('div', { class: 'row', style: 'align-items:stretch;gap:10px;flex:1;min-height:0' }, ...cols));
 }
@@ -1603,8 +1644,7 @@ function pageTune() {
     frame.setAttribute('x', xs(a) - 3); frame.setAttribute('width', xs(b + 1) - xs(a) + 2);
   };
   ['Tune On', 'Tune Root', 'Tune Scale', 'Tune Lowest', 'Tune Highest', 'Tune Tilt'].forEach((nm) => bind(P(nm), draw));
-  const col = (lbl, el) => h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: 'lbl',)TCHTML"
-R"TCHTML( text: lbl }), el);
+  const col = (lbl, el) => h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: 'lbl', text: lbl }), el);
   const left = card('flex:1;gap:10px',
     h('div', { class: 'row' }, h('h2', { class: 'hd', text: 'TUNE', style: 'margin:0;font-size:15px' }), toggle(P('Tune On'), 'On'), h('div', { class: 'sp' }), h('span', { class: 'hint', text: 'Rings the notes of your key out of whatever comes in. Works in every routing.' })),
     h('div', { class: 'row', style: 'gap:14px;flex-wrap:wrap;align-items:flex-end' },
@@ -1678,7 +1718,8 @@ function saveDialog() {
     h('div', { class: 'row' }, h('h3', { class: 'hd', text: 'SAVE PRESET', style: 'margin:0;font-size:13px' }), h('div', { class: 'sp' }), h('button', { type: 'button', class: 'ibtn', text: '✕', 'aria-label': 'Close', onclick: close })),
     input,
     h('div', { class: 'hint', text: 'Saved to: ' + ((S.presetDir && S.presetDir.path) || 'your presets folder') + '  (change it in ⚙ Settings)' }),
-    h('div', { class: 'row', style: 'justify-content:flex-end;gap:8px' }, h('button', { type: 'button', class: 'btn', text: 'Cancel', onclick: close }), h('button', { type: 'button', class: 'btn on', text: 'Save', onclick: doSave })),
+    h('div', { class: 'row', style: 'justify-content:flex-end;gap:8px' }, h('button', { type: 'button', class: 'btn', text: 'Cancel', )TCHTML"
+R"TCHTML(onclick: close }), h('button', { type: 'button', class: 'btn on', text: 'Save', onclick: doSave })),
     h('div', { class: 'lbl', text: 'Your presets' }), list));
   box.addEventListener('click', (e) => { if (e.target === box) close(); });
   document.getElementById('stage').appendChild(box); input.focus(); input.select();
@@ -1704,8 +1745,7 @@ function toggleSettings() {
     h('div', { class: 'row' }, h('h3', { class: 'hd', text: 'SETTINGS', style: 'margin:0;font-size:13px' }), h('div', { class: 'sp' }), h('button', { type: 'button', class: 'ibtn', text: '✕', 'aria-label': 'Close', onclick: () => box.remove() })),
     h('div', { class: 'lbl', text: 'About' }),
     h('div', { class: 'row', style: 'gap:12px;align-items:flex-start' },
-      h('div', { style: 'font-size:13px;line-height:1.45;flex:1' }, h('b', { text: 'Three’s Company ' + ((S.info && S.info.version) || '') }), h('br'), 'by Otis Kanno', h('br'))TCHTML"
-R"TCHTML(,
+      h('div', { style: 'font-size:13px;line-height:1.45;flex:1' }, h('b', { text: 'Three’s Company ' + ((S.info && S.info.version) || '') }), h('br'), 'by Otis Kanno', h('br'),
         h('span', { class: 'hint', text: 'Free software (GPL v3): anyone you share it with can get its source code. Filters: Surge sst-filters. Started from Two Filters by BaconPaul.' })),
       h('div', { class: 'col', style: 'align-items:center;gap:3px' }, h('img', { class: 'qr', src: QR_PNG, alt: 'QR code: beacons.ai/otiskanno' }), h('span', { class: 'hint', text: 'beacons.ai/otiskanno', style: 'font-size:10.5px' }), h('span', { class: 'hint', text: 'A link to my human-created music', style: 'font-size:10px;text-align:center;max-width:110px' }))),
     h('div', { style: 'height:1px;background:var(--line)' }),
@@ -1762,7 +1802,8 @@ function pageMutation() {
   const seed = P('Mutate Seed'), mutP = P('Mutate'), everyP = P('Mutate Every'), frzP = P('Mutate Freeze');
   const status = h('div', { class: 'hint', style: 'font-size:11.5px;line-height:1.35' }), bar = h('i', { style: 'display:block;height:100%;width:0;background:var(--ink);border-radius:2px' });
   const barBox = h('div', { style: 'height:4px;background:var(--off);border-radius:2px;overflow:hidden' }, bar);
-  const mutTip = 'Mutate slowly changes the answers in step 2 by itself. 0%: they stay exactly as you set them. Above 0%, every “Every” bars each answer drifts: Amount and Chance wander a little (pulled back toward your settings, never to nothing), and the higher Mutate is, the more often an answer flips Same ↔ Opposite, moves a different knob, or changes its Delay. It follows the song position, so bar 33 always plays the same answers. Seed picks a different path of changes; Freeze holds the answers where they are now. The “Now” line under each answer shows what is really playing.';
+  const mutTip = 'Mutate slowly changes the answer)TCHTML"
+R"TCHTML(s in step 2 by itself. 0%: they stay exactly as you set them. Above 0%, every “Every” bars each answer drifts: Amount and Chance wander a little (pulled back toward your settings, never to nothing), and the higher Mutate is, the more often an answer flips Same ↔ Opposite, moves a different knob, or changes its Delay. It follows the song position, so bar 33 always plays the same answers. Seed picks a different path of changes; Freeze holds the answers where they are now. The “Now” line under each answer shows what is really playing.';
   const mut = card('width:244px;gap:7px', h('div', { class: 'row', style: 'gap:6px' }, num('3', 'Step 3 (optional)'), tip(h('div', { class: 'lbl', text: 'Mutate ⓘ' }), 'Mutate', mutTip), h('div', { class: 'sp' }), tip(toggle(frzP, 'Freeze'), 'Freeze', 'Holds the answers as they are right now. Turn it off and they catch up with the song again.'), dice(midLine, 'Random: Mutation (trigger, answers, moves, amounts, chance, delay, seed)', randomMutation)),
     h('div', { class: 'row', style: 'align-items:center;gap:10px' }, tip(knob(mutP, 'Mutate', midLine, 38), 'Mutate', mutTip),
       h('div', { class: 'col', style: 'gap:5px' }, tip(labelled('Every', sel(everyP, 82)), 'Every', 'How often the answers change.'),
@@ -1789,8 +1830,7 @@ function pageMutation() {
   S.histRows = hist;
   const histBox = card('gap:5px;padding:7px 12px', h('div', { class: 'row' }, h('div', { class: 'lbl', text: 'What happened: the last 16 times Mid fired (newest on the right)' }), h('div', { class: 'sp' }), h('span', { class: 'hint', style: 'font-size:11px', text: '▲ pushed up · ▼ pushed down · blank: no answer' })),
     h('div', { class: 'row' }, btag(1), hist[1]), h('div', { class: 'row' }, btag(0), hist[0]), h('div', { class: 'row' }, btag(2), hist[2]));
-  const page =)TCHTML"
-R"TCHTML( h('div', { style: 'flex-direction:column;gap:8px' }, h('div', { class: 'row', style: 'align-items:stretch;gap:10px' }, trig, resp(0, 'Mutation Low '), resp(2, 'Mutation High '), mut), histBox);
+  const page = h('div', { style: 'flex-direction:column;gap:8px' }, h('div', { class: 'row', style: 'align-items:stretch;gap:10px' }, trig, resp(0, 'Mutation Low '), resp(2, 'Mutation High '), mut), histBox);
   setTimeout(() => S.drawMutNow && S.drawMutNow(), 0);
   return page;
 }
@@ -1872,7 +1912,8 @@ function pageLfos() {
     if (!editable()) return;
     const [mx, my] = pos(e); let t = hit(mx, my); const pts = S.curves[S.lfo];
     if (!t && pts.length < 32) {
-      const x = Math.min(1, Math.max(0, (mx - CM) / (CW - 2 * CM))), y = Math.min(1, Math.max(-1, 1 - 2 * (my - CM) / (CH - 2 * CM)));
+      const x = Math.min(1, Math.max(0, (mx - CM) / (CW - 2 * CM))), y = Math.min(1, Math.max)TCHTML"
+R"TCHTML((-1, 1 - 2 * (my - CM) / (CH - 2 * CM)));
       let i = pts.findIndex((p) => p.x > x); if (i <= 0) i = pts.length - 1;
       pts.splice(i, 0, { x, y, t: 1 }); t = { kind: 'pt', i };
     }
@@ -1913,8 +1954,7 @@ function refreshLfo() {
     const arp = (k, t) => h('button', { type: 'button', class: 'btn', style: 'height:26px;padding:0 9px', text: t, onclick: () => arpPattern(i, k, oct) });
     S.lfoUi.stepsBox.replaceChildren(
       h('div', { class: 'row', style: 'gap:8px;flex-wrap:wrap' }, labelled('Steps', stepper(cnt)), knob(P(pre + 'Glide'), 'Glide', ink, 28), labelled('Scale', sel(P(pre + 'Scale'), 104)), h('div', { class: 'sp' }),
-        h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: ')TCHTML"
-R"TCHTML(lbl', text: 'Arp pattern' }), h('div', { class: 'row', style: 'gap:4px' }, arp('up', 'Up'), arp('down', 'Down'), arp('updown', 'Up-Down'), arp('random', 'Random'), octSeg, arp('clear', 'Clear')))),
+        h('div', { class: 'col', style: 'gap:3px' }, h('div', { class: 'lbl', text: 'Arp pattern' }), h('div', { class: 'row', style: 'gap:4px' }, arp('up', 'Up'), arp('down', 'Down'), arp('updown', 'Up-Down'), arp('random', 'Random'), octSeg, arp('clear', 'Clear')))),
       sb.box);
     sb.box.style.minHeight = '90px';
   }
@@ -2003,7 +2043,8 @@ function pageSequencer() {
     // steps that also carry P-locks get a ring and a lock, so they stand out from the drawn bars
     sb.cells.forEach((c, i) => {
       const mark = h('div', { class: 'lkmark', text: '🔒' }); c.appendChild(mark);
-      const upd = () => { const n = PLN.filter((_, k) => lockP(b, k, i + off).v >= 0); c.classList.toggle('haslock', n.length > 0); c.title = n.length ? 'Step ' + (i + 1 + off) + ': locks ' + n.join(', ') : 'Step ' + (i + 1 + off); };
+      const upd = () => { const n = PLN.filter((_, k) => lockP(b, k, i + off).v >= 0); c.classList.toggle('hasloc)TCHTML"
+R"TCHTML(k', n.length > 0); c.title = n.length ? 'Step ' + (i + 1 + off) + ': locks ' + n.join(', ') : 'Step ' + (i + 1 + off); };
       PLN.forEach((_, k) => bind(lockP(b, k, i + off), upd));
     });
     // Euclid: rests are hatched (Gate silences them), hits get a dot (Trig plays them at full)
@@ -2053,8 +2094,7 @@ function lockCells(b) {
   const box = h('div', { class: 'steps lockcells', role: 'group', 'aria-label': BAND[b] + ' P-lock steps' }), cells = [];
   for (let j = 0; j < 16; ++j) {
     const tags = h('div', { class: 'lt' }), num = h('div', { class: 'ln' }), el = h('div', { class: 'st' }, num, tags);
-    el.style.setProperty('--lc', b === 2 ? '#FFC107' : bandColour(b)); el.style.setProperty('--lt',)TCHTML"
-R"TCHTML( b === 2 ? '#2A1E00' : '#fff'); el.style.setProperty('--sc', b === 2 ? 'var(--ink)' : '#FFC107');
+    el.style.setProperty('--lc', b === 2 ? '#FFC107' : bandColour(b)); el.style.setProperty('--lt', b === 2 ? '#2A1E00' : '#fff'); el.style.setProperty('--sc', b === 2 ? 'var(--ink)' : '#FFC107');
     el.addEventListener('click', () => { const i = j + off; selectLock(S.lockSel && S.lockSel.b === b && S.lockSel.step === i ? null : { b, step: i }); });
     el.addEventListener('dblclick', () => clearLockStep(b, j + off));
     el.addEventListener('contextmenu', (e) => {
@@ -2137,7 +2177,8 @@ function pageMod() {
     const pre = 'Mod ' + (k + 1) + ' ', src = P(pre + 'Source'), m = h('i', { style: 'display:block;width:6px;height:16px;border-radius:2px;background:var(--off)' });
     S.slotMeters.push([src, m]);
     grid.appendChild(h('div', { class: 'slot' }, h('span', { class: 'hint', text: k + 1 }), sel(src, 108), sel(P(pre + 'Target'), 128), bipBar(P(pre + 'Amount'), pre), m,
-      dice(ink, 'Random: slot ' + (k + 1) + ' (source, target, amount)', () => randomSlot(k + 1)), clipButton('slot', k)));
+      dice(in)TCHTML"
+R"TCHTML(k, 'Random: slot ' + (k + 1) + ' (source, target, amount)', () => randomSlot(k + 1)), clipButton('slot', k)));
   }
   return h('div', { style: 'flex-direction:column;gap:8px' }, h('div', { class: 'row' }, h('h2', { class: 'hd', text: 'MOD', style: 'margin:0;font-size:15px' }), h('div', { class: 'sp' }), h('span', { class: 'hint', text: 'Pick a source and a target, then drag the amount: right pushes the target up from its knob, left pulls it down. → one way (the default) · Shift-click a bar for ↔ both ways.' }),
     dice(ink, 'Random: the whole matrix (sources, targets, amounts)', randomMod)), grid);
@@ -2167,8 +2208,7 @@ function pageEnv() {
 }
 function pageMix() {
   const m = mode(), pre = m + ' ';
-  const blocks = [card('flex:1', h('div', { class: 'row' }, h('div', { class: 'lbl', te)TCHTML"
-R"TCHTML(xt: 'Feedback' }), h('div', { class: 'sp' }), toggle(P(pre + 'Feedback On'), 'On')), h('div', { class: 'row' }, knob(P(pre + 'Feedback'), 'Amount', ink, 50), knob(P(pre + 'Feedback Tone'), 'Tone', ink, 50)), h('div', { class: 'hint', text: 'Warm and saturating; dies away when the sound stops.' })),
+  const blocks = [card('flex:1', h('div', { class: 'row' }, h('div', { class: 'lbl', text: 'Feedback' }), h('div', { class: 'sp' }), toggle(P(pre + 'Feedback On'), 'On')), h('div', { class: 'row' }, knob(P(pre + 'Feedback'), 'Amount', ink, 50), knob(P(pre + 'Feedback Tone'), 'Tone', ink, 50)), h('div', { class: 'hint', text: 'Warm and saturating; dies away when the sound stops.' })),
     card('flex:1', h('div', { class: 'row' }, h('div', { class: 'lbl', text: 'Noise' }), h('div', { class: 'sp' }), toggle(P(pre + 'Noise On'), 'On')), h('div', { class: 'row' }, knob(P(pre + 'Noise'), 'Amount', ink, 50), knob(P(pre + 'Noise Color'), 'Color', ink, 50)), h('div', { class: 'hint', text: 'Fed into the filters, so it rings with them.' })),
     card('flex:1.3', h('div', { class: 'lbl', text: 'Gain' }), h('div', { class: 'row' }, knob(P(pre + 'Input'), 'Input', ink, 50), knob(P(pre + 'Output'), 'Output', ink, 50), knob(P(pre + 'Mix'), 'Mix', leanInk, 50)))];
   if (m === 'Par' && !spectralOn()) blocks.push(card('flex:1.1', h('div', { class: 'lbl', text: 'Split points' }), h('div', { class: 'row' }, knob(P('Par Split Low/Mid'), 'Low/Mid', ink, 50), knob(P('Par Split Mid/High'), 'Mid/High', ink, 50))));
@@ -2246,7 +2286,8 @@ function live(u) {
 }
 
 // ---------------------------------------------------------------------------
-// the graph: each strip's filter as it is right now (modulation included)
+// the graph: each strip's filter as)TCHTML"
+R"TCHTML( it is right now (modulation included)
 // ---------------------------------------------------------------------------
 // the top display: the filter curves alone, with each band's spectrum behind them, or a scope
 S.view = 1;
@@ -2291,8 +2332,7 @@ function drawGraph() {
   const m = mode(), par = m === 'Par';
   const hz = (st) => 440 * Math.pow(2, st / 12);
   const specOn = spectralOn(), tonal = tonalOn();
-  const f1 = par ? hz(S.)TCHTML"
-R"TCHTML(mods[P('Par Split Low/Mid').id] ?? P('Par Split Low/Mid').v) : 0, f2 = par ? hz(S.mods[P('Par Split Mid/High').id] ?? P('Par Split Mid/High').v) : 0;
+  const f1 = par ? hz(S.mods[P('Par Split Low/Mid').id] ?? P('Par Split Low/Mid').v) : 0, f2 = par ? hz(S.mods[P('Par Split Mid/High').id] ?? P('Par Split Mid/High').v) : 0;
   const resp = [], solo = par && [0, 1, 2].some((b) => P('Par ' + BAND[b] + ' Solo').v >= 0.5);
   for (let b = 0; b < 3; ++b) {
     const pre = m + ' ' + BAND[b] + ' ', fp = P(pre + 'Filter Type'), vp = P(pre + 'Filter Variant'), on = P(pre + 'Filter On').v >= 0.5;
@@ -2302,6 +2342,10 @@ R"TCHTML(mods[P('Par Split Low/Mid').id] ?? P('Par Split Low/Mid').v) : 0, f2 = 
     if (on && md.name === 'Z-Plane') {
       const coS = S.mods[P(pre + 'Cutoff').id] ?? P(pre + 'Cutoff').v, moS = S.mods[P(pre + 'Morph').id] ?? P(pre + 'Morph').v;
       const zf = zMag(vname, moS, 3 * Math.tanh((coS - 14.2131) / 36), res); shapeF0 = (w) => zf(w * cut);
+    }
+    if (on && md.name.startsWith('Air ')) {
+      const moS = S.mods[P(pre + 'Morph').id] ?? P(pre + 'Morph').v, fc = airCut(vname, cut), af = airMag(vname, moS, res);
+      shapeF0 = (w) => af(w * cut / fc);
     }
     const shapeF = bk ? (w) => shapeF0(w) * bk(w * cut) : shapeF0;
     const lvl = Math.pow(10, (S.mods[P(pre + 'Level').id] ?? P(pre + 'Level').v) / 20);
@@ -2387,7 +2431,8 @@ function drawScope(g, W, H) {
   S.scopeGain = Math.max(pk, (S.scopeGain || pk) * 0.97);
   const lane = H / 3;
   [2, 1, 0].forEach((b, row) => {
-    const mid = lane * (row + 0.5), k = (lane / 2 - 4) / S.scopeGain, a = sc[b];
+    const mid = lane * ()TCHTML"
+R"TCHTML(row + 0.5), k = (lane / 2 - 4) / S.scopeGain, a = sc[b];
     g.fillStyle = row % 2 ? T.panel2 : T.graph; g.fillRect(0, lane * row, W, lane);
     g.strokeStyle = T.grid; g.beginPath(); g.moveTo(0, mid); g.lineTo(W, mid); g.stroke();
     const col = b === 2 ? '#E8A800' : bandColour(b);
